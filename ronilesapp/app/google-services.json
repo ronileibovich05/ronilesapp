@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1046566266133",
+    "project_id": "ronilesapp",
+    "storage_bucket": "ronilesapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1046566266133:android:ca561942d16f52014f351c",
+        "android_client_info": {
+          "package_name": "com.example.ronilesapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA54pa7_lfd1YqlkrObo0NvrV_X5yj0dfg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
