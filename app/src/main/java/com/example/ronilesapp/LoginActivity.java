@@ -62,25 +62,9 @@ public class LoginActivity extends AppCompatActivity {
 
 
     public void register(View view) {
-        EditText emailEditText = findViewById(R.id.edittext_email);
-        EditText passwordEditText = findViewById(R.id.edittext_password);
-
-        String email = emailEditText.getText().toString();
-        String password = passwordEditText.getText().toString();
-
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            User user = new User("abcName",email,5);
-                            userRef.child("User1").setValue(user);
-                            startActivity(new Intent(LoginActivity.this, WelcomeActivity.class));
-                        } else {
-                            Toast.makeText(LoginActivity.this, "Register failed: " + task.getException().getMessage(),
-                                    Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });
+        Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
+        startActivity(intent);
     }
-    }
+
+}
+
