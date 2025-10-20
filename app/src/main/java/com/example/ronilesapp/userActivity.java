@@ -65,7 +65,7 @@ public class userActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
                 if (user != null) {
-                    tvName.setText(user.getName());
+                    tvName.setText(user.getFirstName());
                     tvEmail.setText(user.getEmail());
                 } else {
                     tvName.setText("משתמש חדש");

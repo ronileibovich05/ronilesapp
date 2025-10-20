@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -48,12 +49,77 @@ public class WelcomeActivity extends AppCompatActivity {
 
         // כפתור עריכה
         btnEdit.setOnClickListener(v -> {
-            User updatedUser = new User("name1", "abc@gmail.com", 44);
-            if (user != null) {
-                userRef.child(user.getUid()).setValue(updatedUser);
-                Toast.makeText(WelcomeActivity.this, "הפרטים עודכנו", Toast.LENGTH_SHORT).show();
+            if (user == null) {
+                Toast.makeText(this, "אין משתמש מחובר", Toast.LENGTH_SHORT).show();
+                return;
             }
+
+            // נביא את נתוני המשתמש הקיימים מה־Firebase
+            userRef.child(user.getUid()).get().addOnSuccessListener(snapshot -> {
+                if (!snapshot.exists()) {
+                    Toast.makeText(this, "לא נמצאו נתונים למשתמש הזה", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // נשלוף את הנתונים הקיימים
+                String currentName = snapshot.child("name").getValue(String.class);
+                String currentEmail = snapshot.child("email").getValue(String.class);
+                Long currentAgeLong = snapshot.child("age").getValue(Long.class);
+                int currentAge = currentAgeLong != null ? currentAgeLong.intValue() : 0;
+
+                // ניצור את תצוגת הדיאלוג
+                View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_user, null);
+
+                // נקשר את השדות
+                EditText nameInput = dialogView.findViewById(R.id.nameInput);
+                EditText emailInput = dialogView.findViewById(R.id.emailInput);
+                EditText ageInput = dialogView.findViewById(R.id.ageInput);
+
+
+                // נמלא נתונים קיימים
+                nameInput.setText(currentName != null ? currentName : "");
+                emailInput.setText(currentEmail != null ? currentEmail : "");
+                ageInput.setText(currentAge > 0 ? String.valueOf(currentAge) : "");
+
+                // נציג את הדיאלוג
+                new androidx.appcompat.app.AlertDialog.Builder(WelcomeActivity.this)
+                        .setTitle("עריכת פרטים")
+                        .setView(dialogView)
+                        .setPositiveButton("שמור", (dialog, which) -> {
+                            String name = nameInput.getText().toString().trim();
+                            String email = emailInput.getText().toString().trim();
+                            String ageStr = ageInput.getText().toString().trim();
+
+                            if (name.isEmpty() || email.isEmpty() || ageStr.isEmpty()) {
+                                Toast.makeText(this, "נא למלא את כל השדות", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
+                            int age;
+                            try {
+                                age = Integer.parseInt(ageStr);
+                            } catch (NumberFormatException e) {
+                                Toast.makeText(this, "הגיל חייב להיות מספר", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
+                            // יצירת אובייקט User חדש
+                            User updatedUser = new User(name, email, "3",true,"4"); //TODO
+
+                            // שמירה למסד הנתונים
+                            userRef.child(user.getUid()).setValue(updatedUser)
+                                    .addOnSuccessListener(a -> Toast.makeText(this, "הפרטים עודכנו בהצלחה!", Toast.LENGTH_SHORT).show())
+                                    .addOnFailureListener(e -> Toast.makeText(this, "שגיאה: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                        })
+                        .setNegativeButton("ביטול", (dialog, which) -> dialog.dismiss())
+                        .show();
+
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "שגיאה בטעינת הנתונים: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            });
         });
+
+
 
         // כפתור מחיקה
         btnDelete.setOnClickListener(v -> {
