@@ -1,8 +1,11 @@
 package com.example.ronilesapp;
 
-import android.content.Intent;
+import static com.example.ronilesapp.FBRef.*;
+
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -13,75 +16,72 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowCompat;
 
-import com.google.firebase.auth.FirebaseAuth;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 public class userActivity extends AppCompatActivity {
 
     private TextView tvName, tvEmail;
+    private ImageView profileImageView;
     private Button btnLogout;
-    private FirebaseAuth mAuth;
-    private DatabaseReference usersRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // שים לב: שיטה סטנדרטית ל-edge-to-edge בלי תלות בספריה חיצונית
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_user);
 
-        // קישור ל-Views
         tvName = findViewById(R.id.tvName);
         tvEmail = findViewById(R.id.tvEmail);
+        profileImageView = findViewById(R.id.imageview_profile);
         btnLogout = findViewById(R.id.btnLogout);
 
-        // insets (שומר על פדינג למערכת הניווט / סטטוס בר)
+        // Edge-to-edge padding
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // Firebase
-        mAuth = FirebaseAuth.getInstance();
         FirebaseUser current = mAuth.getCurrentUser();
         if (current == null) {
             Toast.makeText(this, "אין משתמש מחובר", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         }
 
         String uid = current.getUid();
-        usersRef = FirebaseDatabase.getInstance().getReference("Users").child(uid);
 
-        usersRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                User user = snapshot.getValue(User.class);
-                if (user != null) {
-                    tvName.setText(user.getFirstName());
-                    tvEmail.setText(user.getEmail());
+        // קבלת נתונים מ-Firestore
+        refUsers.document(uid).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot snapshot = task.getResult();
+                if (snapshot != null && snapshot.exists()) {
+                    User user = snapshot.toObject(User.class);
+                    if (user != null) {
+                        tvName.setText(user.getFirstName());
+                        tvEmail.setText(user.getEmail());
+
+                        // הצגת תמונה אם קיימת
+                        if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
+                            Uri imageUri = Uri.parse(user.getProfileImageUrl());
+                            profileImageView.setImageURI(imageUri);
+                        }
+                    }
                 } else {
                     tvName.setText("משתמש חדש");
                     tvEmail.setText(current.getEmail());
                 }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(userActivity.this, "שגיאה בטעינת נתונים: " + error.getMessage(), Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(userActivity.this, "שגיאה בטעינת נתונים: " +
+                        task.getException().getMessage(), Toast.LENGTH_LONG).show();
             }
         });
 
         btnLogout.setOnClickListener(v -> {
             mAuth.signOut();
-            startActivity(new Intent(userActivity.this, LoginActivity.class));
             finish();
         });
     }

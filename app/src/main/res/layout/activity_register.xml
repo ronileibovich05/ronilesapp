@@ -9,8 +9,9 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="24dp"
-        android:gravity="center">
+        android:gravity="center_horizontal">
 
+        <!-- תמונת פרופיל -->
         <ImageView
             android:id="@+id/imageview_profile"
             android:layout_width="120dp"
@@ -18,54 +19,79 @@
             android:src="@mipmap/ic_launcher_round"
             android:scaleType="centerCrop"
             android:background="@drawable/circle_background"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="16dp" />
 
-        <Button
-            android:id="@+id/button_choose_image"
+        <!-- שורה עם שני כפתורים: Choose Image ו-Take Photo -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Choose Image"
-            android:onClick="chooseImage"
-            android:layout_marginBottom="16dp"/>
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
+            android:gravity="center">
 
+            <Button
+                android:id="@+id/button_choose_image"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Choose Image"
+                android:onClick="chooseImage"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/button_take_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Take Photo"
+                android:onClick="takePhoto"/>
+        </LinearLayout>
+
+        <!-- שדות טקסט -->
         <EditText
             android:id="@+id/edittext_first_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="First Name" />
+            android:hint="First Name"
+            android:inputType="textPersonName"
+            android:layout_marginBottom="8dp"/>
 
         <EditText
             android:id="@+id/edittext_last_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Last Name" />
+            android:hint="Last Name"
+            android:inputType="textPersonName"
+            android:layout_marginBottom="8dp"/>
 
         <EditText
             android:id="@+id/edittext_email"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Email"
-            android:inputType="textEmailAddress"/>
+            android:inputType="textEmailAddress"
+            android:layout_marginBottom="8dp"/>
 
         <EditText
             android:id="@+id/edittext_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Password"
-            android:inputType="textPassword" />
+            android:inputType="textPassword"
+            android:layout_marginBottom="8dp"/>
 
+        <!-- Checkbox -->
         <CheckBox
             android:id="@+id/checkbox_notifications"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Allow Notifications"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginBottom="16dp"/>
 
+        <!-- כפתור הרשמה -->
         <Button
+            android:id="@+id/button_register"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Register"
-            android:onClick="registerUser"
-            android:layout_marginTop="16dp"/>
+            android:onClick="registerUser"/>
     </LinearLayout>
 </ScrollView>
