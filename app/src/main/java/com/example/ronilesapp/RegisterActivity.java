@@ -14,6 +14,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
+import android.content.Intent;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -27,12 +28,12 @@ import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    EditText firstNameEditText, lastNameEditText, emailEditText, passwordEditText;
-    CheckBox notificationsCheckBox;
-    ImageView profileImageView;
+    private EditText firstNameEditText, lastNameEditText, emailEditText, passwordEditText;
+    private CheckBox notificationsCheckBox;
+    private ImageView profileImageView;
 
-    Uri selectedImageUri;  // התמונה שנבחרה/נלכדה
-    Uri cameraImageUri;    // URI זמני למצלמה
+    private Uri selectedImageUri;  // תמונה שנבחרה
+    private Uri cameraImageUri;    // URI זמני למצלמה
 
     private ActivityResultLauncher<String> pickImageLauncher;
     private ActivityResultLauncher<Uri> cameraLauncher;
@@ -50,6 +51,10 @@ public class RegisterActivity extends AppCompatActivity {
         notificationsCheckBox = findViewById(R.id.checkbox_notifications);
         profileImageView = findViewById(R.id.imageview_profile);
 
+        setupImagePickers();
+    }
+
+    private void setupImagePickers() {
         // גלריה
         pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
@@ -65,22 +70,19 @@ public class RegisterActivity extends AppCompatActivity {
         cameraLauncher = registerForActivityResult(
                 new ActivityResultContracts.TakePicture(),
                 result -> {
-                    if (result) { // צילום הצליח
+                    if (result) {
                         selectedImageUri = cameraImageUri;
                         profileImageView.setImageURI(selectedImageUri);
                     }
                 }
         );
 
-        // בקשת הרשאת מצלמה בזמן ריצה
+        // בקשת הרשאת מצלמה
         requestCameraPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
-                    if (isGranted) {
-                        openCamera();
-                    } else {
-                        Toast.makeText(this, "הרשאת מצלמה דרושה כדי לצלם תמונה", Toast.LENGTH_SHORT).show();
-                    }
+                    if (isGranted) openCamera();
+                    else Toast.makeText(this, "הרשאת מצלמה דרושה כדי לצלם תמונה", Toast.LENGTH_SHORT).show();
                 }
         );
     }
@@ -92,14 +94,9 @@ public class RegisterActivity extends AppCompatActivity {
 
     // מצלמים תמונה
     public void takePhoto(View view) {
-        // בודקים הרשאות
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
-                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
-            } else {
-                openCamera();
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
         } else {
             openCamera();
         }
@@ -107,14 +104,10 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void openCamera() {
         cameraImageUri = createImageUri();
-        if (cameraImageUri != null) {
-            cameraLauncher.launch(cameraImageUri);
-        } else {
-            Toast.makeText(this, "שגיאה ביצירת קובץ תמונה", Toast.LENGTH_SHORT).show();
-        }
+        if (cameraImageUri != null) cameraLauncher.launch(cameraImageUri);
+        else Toast.makeText(this, "שגיאה ביצירת קובץ תמונה", Toast.LENGTH_SHORT).show();
     }
 
-    // יצירת URI זמני למצלמה
     private Uri createImageUri() {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.TITLE, "New Picture");
@@ -160,8 +153,7 @@ public class RegisterActivity extends AppCompatActivity {
         imageRef.putFile(imageUri)
                 .addOnSuccessListener(taskSnapshot -> imageRef.getDownloadUrl()
                         .addOnSuccessListener(uri -> {
-                            String imageUrl = uri.toString();
-                            saveUserToFirestore(uid, firstName, lastName, email, notifications, imageUrl);
+                            saveUserToFirestore(uid, firstName, lastName, email, notifications, uri.toString());
                         }))
                 .addOnFailureListener(e -> Toast.makeText(RegisterActivity.this,
                         "טעינת התמונה נכשלה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
@@ -180,10 +172,18 @@ public class RegisterActivity extends AppCompatActivity {
                 .set(userMap)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(RegisterActivity.this, "הרשמה הצליחה!", Toast.LENGTH_SHORT).show();
-                    startActivity(new android.content.Intent(RegisterActivity.this, WelcomeActivity.class));
+                    // מעבר אוטומטי למסך המשימות
+                    startActivity(new Intent(RegisterActivity.this, TasksActivity.class));
                     finish();
                 })
                 .addOnFailureListener(e -> Toast.makeText(RegisterActivity.this,
                         "הרשמה נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show());
+    }
+
+    // מעבר למסך התחברות
+    public void goToLogin(View view) {
+        Intent intent = new Intent(this, LoginActivity.class);
+        startActivity(intent);
+        finish();
     }
 }

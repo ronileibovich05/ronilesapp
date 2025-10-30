@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FBEFF1"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="start">
+
+        <!-- כותרת המסך -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Create Task"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#5A4B4B"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp" />
+
+        <!-- כותרת המשימה -->
+        <EditText
+            android:id="@+id/editTextTaskTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Task Title"
+            android:padding="12dp"
+            android:background="@drawable/edittext_background"
+            android:textColor="#5A4B4B"
+            android:textSize="16sp" />
+
+        <!-- תיאור המשימה -->
+        <EditText
+            android:id="@+id/editTextTaskDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Task Description"
+            android:padding="12dp"
+            android:background="@drawable/edittext_background"
+            android:textColor="#5A4B4B"
+            android:textSize="16sp"
+            android:layout_marginTop="12dp" />
+
+        <!-- תאריך -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Date"
+            android:textColor="#5A4B4B"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp" />
+
+        <DatePicker
+            android:id="@+id/datePickerTask"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:calendarViewShown="true"
+            android:layout_marginTop="4dp" />
+
+        <!-- שעה -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Time"
+            android:textColor="#5A4B4B"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp" />
+
+        <TimePicker
+            android:id="@+id/timePickerTask"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:is24HourView="false" />
+
+        <!-- קטגוריה -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Category"
+            android:textColor="#5A4B4B"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp" />
+
+        <Spinner
+            android:id="@+id/spinnerCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <!-- כפתור שמירה -->
+        <Button
+            android:id="@+id/buttonSaveTask"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save Task"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#8B5E5E"
+            android:layout_marginTop="24dp"
+            android:padding="12dp" />
+
+    </LinearLayout>
+</ScrollView>
