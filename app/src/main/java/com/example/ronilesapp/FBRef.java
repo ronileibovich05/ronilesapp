@@ -18,5 +18,7 @@ public class FBRef {
 
     // Firebase Storage
     public static StorageReference storageRef = FirebaseStorage.getInstance().getReference();
-    public static CollectionReference refTasks;
+
+    // Tasks collection
+    public static CollectionReference refTasks = FBFS.collection("tasks");
 }

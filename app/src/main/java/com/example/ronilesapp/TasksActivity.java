@@ -27,7 +27,6 @@ public class TasksActivity extends AppCompatActivity {
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-    // ActivityResultLauncher להוספת משימה
     private ActivityResultLauncher<Intent> addTaskLauncher;
 
     @Override
@@ -47,16 +46,21 @@ public class TasksActivity extends AppCompatActivity {
         recyclerViewTasks.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewTasks.setAdapter(adapter);
 
-        // Register launcher לקבלת תוצאה מה-Item_TaskActivity
+        // Launcher לקבלת תוצאה מה-Item_TaskActivity
         addTaskLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Task newTask = (Task) result.getData().getSerializableExtra("newTask");
-                        if (newTask != null) {
-                            taskList.add(newTask);
-                            adapter.notifyItemInserted(taskList.size() - 1);
-                        }
+                        Intent data = result.getData();
+                        Task newTask = new Task(
+                                data.getStringExtra("newTaskTitle"),
+                                data.getStringExtra("newTaskDescription"),
+                                data.getStringExtra("newTaskDay"),
+                                data.getStringExtra("newTaskHour"),
+                                data.getBooleanExtra("newTaskDone", false)
+                        );
+                        taskList.add(newTask);
+                        adapter.notifyItemInserted(taskList.size() - 1);
                     }
                 }
         );

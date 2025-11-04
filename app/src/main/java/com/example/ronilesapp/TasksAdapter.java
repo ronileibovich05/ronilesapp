@@ -28,8 +28,9 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
     @NonNull
     @Override
     public TaskViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // כאן אנחנו משתמשים בקובץ XML החדש שלנו single_task.xml
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.activity_item_task, parent, false);
+                .inflate(R.layout.single_task, parent, false);
         return new TaskViewHolder(view);
     }
 
@@ -42,6 +43,7 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         holder.tvCategory.setText(task.getCategory());
         holder.checkBoxDone.setChecked(task.isDone());
 
+        // שמירת שינויי הסימון
         holder.checkBoxDone.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (listener != null) listener.onTaskChecked(task, isChecked);
         });

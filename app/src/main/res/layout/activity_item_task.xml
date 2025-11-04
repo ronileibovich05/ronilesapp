@@ -29,7 +29,6 @@
             android:layout_height="wrap_content"
             android:hint="Task Title"
             android:padding="12dp"
-            android:background="@drawable/edittext_background"
             android:textColor="#5A4B4B"
             android:textSize="16sp" />
 
@@ -40,7 +39,6 @@
             android:layout_height="wrap_content"
             android:hint="Task Description"
             android:padding="12dp"
-            android:background="@drawable/edittext_background"
             android:textColor="#5A4B4B"
             android:textSize="16sp"
             android:layout_marginTop="12dp" />
@@ -74,8 +72,7 @@
             android:id="@+id/timePickerTask"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:is24HourView="false" />
+            android:layout_marginTop="4dp" />
 
         <!-- קטגוריה -->
         <TextView
@@ -101,7 +98,9 @@
             android:textColor="#FFFFFF"
             android:backgroundTint="#8B5E5E"
             android:layout_marginTop="24dp"
-            android:padding="12dp" />
+            android:padding="12dp"
+            android:onClick="saveTask" />
+
 
     </LinearLayout>
 </ScrollView>

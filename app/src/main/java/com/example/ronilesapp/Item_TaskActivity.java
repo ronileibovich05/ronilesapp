@@ -32,26 +32,32 @@ public class Item_TaskActivity extends AppCompatActivity {
     public void saveTask(View view) {
         String title = editTaskTitle.getText().toString().trim();
         String description = editTaskDescription.getText().toString().trim();
-        String day = datePicker.getDayOfMonth() + "/" + (datePicker.getMonth()+1) + "/" + datePicker.getYear();
+        String day = datePicker.getDayOfMonth() + "/" + (datePicker.getMonth() + 1) + "/" + datePicker.getYear();
         String hour = timePicker.getHour() + ":" + timePicker.getMinute();
 
-        if(title.isEmpty()) {
+        if (title.isEmpty()) {
             Toast.makeText(this, "נא למלא כותרת למשימה", Toast.LENGTH_SHORT).show();
             return;
         }
 
         Task newTask = new Task(title, description, day, hour, false);
 
-        // שומרים ל-Firestore
         FBRef.refTasks.document(title).set(newTask)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(Item_TaskActivity.this, "משימה נוספה!", Toast.LENGTH_SHORT).show();
-                    // מחזירים את המשימה ל-TasksActivity
+
+                    // שולחים את הנתונים חזרה ל-TasksActivity
                     Intent resultIntent = new Intent();
-                    resultIntent.putExtra("newTask", (CharSequence) newTask);
+                    resultIntent.putExtra("newTaskTitle", title);
+                    resultIntent.putExtra("newTaskDescription", description);
+                    resultIntent.putExtra("newTaskDay", day);
+                    resultIntent.putExtra("newTaskHour", hour);
+                    resultIntent.putExtra("newTaskDone", false);
                     setResult(RESULT_OK, resultIntent);
-                    finish(); // סוגרים את המסך
+                    finish();
                 })
-                .addOnFailureListener(e -> Toast.makeText(Item_TaskActivity.this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e ->
+                        Toast.makeText(Item_TaskActivity.this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
     }
 }
