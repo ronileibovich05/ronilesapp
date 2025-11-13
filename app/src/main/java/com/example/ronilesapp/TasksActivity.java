@@ -8,11 +8,13 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.fragment.app.Fragment;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
@@ -20,47 +22,32 @@ import java.util.List;
 
 public class TasksActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerViewTasks;
+    private TabLayout tabLayoutCategories;
+    private ViewPager2 viewPagerTasks;
     private FloatingActionButton fabAddTask;
-    private TasksAdapter adapter;
-    private List<Task> taskList;
-
-    private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     private ActivityResultLauncher<Intent> addTaskLauncher;
+
+    private List<String> categoryList = new ArrayList<>();
+    private List<Fragment> fragments = new ArrayList<>();
+    private CategoryPagerAdapter pagerAdapter;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tasks);
 
-        recyclerViewTasks = findViewById(R.id.recyclerViewTasks);
+        tabLayoutCategories = findViewById(R.id.tabLayoutCategories);
+        viewPagerTasks = findViewById(R.id.viewPagerTasks);
         fabAddTask = findViewById(R.id.fabAddTask);
 
-        taskList = new ArrayList<>();
-        adapter = new TasksAdapter(taskList, (task, isChecked) -> {
-            task.setDone(isChecked);
-            db.collection("tasks").document(task.getTitle()).update("done", isChecked);
-        });
-
-        recyclerViewTasks.setLayoutManager(new LinearLayoutManager(this));
-        recyclerViewTasks.setAdapter(adapter);
-
-        // Launcher לקבלת תוצאה מה-Item_TaskActivity
+        // לאפשר פתיחת מסך הוספת משימה
         addTaskLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Intent data = result.getData();
-                        Task newTask = new Task(
-                                data.getStringExtra("newTaskTitle"),
-                                data.getStringExtra("newTaskDescription"),
-                                data.getStringExtra("newTaskDay"),
-                                data.getStringExtra("newTaskHour"),
-                                data.getBooleanExtra("newTaskDone", false)
-                        );
-                        taskList.add(newTask);
-                        adapter.notifyItemInserted(taskList.size() - 1);
+                        // אפשר לטעון מחדש את הקטגוריות והמשימות
+                        loadCategoriesAndTasks();
                     }
                 }
         );
@@ -70,21 +57,66 @@ public class TasksActivity extends AppCompatActivity {
             addTaskLauncher.launch(intent);
         });
 
-        loadTasksFromFirestore();
+        // טוענים קטגוריות ומשימות
+        loadCategoriesAndTasks();
     }
 
-    private void loadTasksFromFirestore() {
-        db.collection("tasks").get().addOnCompleteListener(task -> {
+    private void loadCategoriesAndTasks() {
+        // קודם כל טוענים את הקטגוריות של המשתמש
+        FBRef.getUserCategoriesRef().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                taskList.clear();
+                categoryList.clear();
+                fragments.clear();
+
+                // מוסיפים קטגוריות מה-Firestore
                 for (QueryDocumentSnapshot doc : task.getResult()) {
-                    Task t = doc.toObject(Task.class);
-                    taskList.add(t);
+                    String categoryName = doc.getString("name");
+                    if (categoryName != null) {
+                        categoryList.add(categoryName);
+                    }
                 }
-                adapter.notifyDataSetChanged();
+
+                // אפשרות "כל המשימות" בכל ההתחלה
+                categoryList.add(0, "כל המשימות");
+
+                // יוצרים פרגמנט לכל קטגוריה
+                for (String cat : categoryList) {
+                    fragments.add(CategoryTasksFragment.newInstance(cat));
+
+                }
+
+                // יוצרים Adapter ל-ViewPager2
+                pagerAdapter = new CategoryPagerAdapter(this, fragments);
+                viewPagerTasks.setAdapter(pagerAdapter);
+
+                // מחברים את TabLayout עם ViewPager2
+                new TabLayoutMediator(tabLayoutCategories, viewPagerTasks,
+                        (tab, position) -> tab.setText(categoryList.get(position))
+                ).attach();
+
             } else {
-                Toast.makeText(this, "Failed to load tasks", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "שגיאה בטעינת קטגוריות", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    // Adapter ל־ViewPager2
+    private static class CategoryPagerAdapter extends FragmentStateAdapter {
+        private final List<Fragment> fragments;
+
+        public CategoryPagerAdapter(AppCompatActivity activity, List<Fragment> fragments) {
+            super(activity);
+            this.fragments = fragments;
+        }
+
+        @Override
+        public Fragment createFragment(int position) {
+            return fragments.get(position);
+        }
+
+        @Override
+        public int getItemCount() {
+            return fragments.size();
+        }
     }
 }

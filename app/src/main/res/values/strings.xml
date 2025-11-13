@@ -1,3 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- שם האפליקציה -->
     <string name="app_name">ronilesapp</string>
+
+    <!-- מחרוזות עבור קטגוריות -->
+    <string name="add_category">הוסף קטגוריה</string>
+    <string name="choose_category">בחר קטגוריה</string>
+    <string name="new_category">קטגוריה חדשה</string>
+
+    <!-- מערך ברירת מחדל של קטגוריות -->
+    <string-array name="default_categories">
+        <item>בית</item>
+        <item>עבודה</item>
+        <item>לימודים</item>
+        <item>אחר</item>
+    </string-array>
 </resources>

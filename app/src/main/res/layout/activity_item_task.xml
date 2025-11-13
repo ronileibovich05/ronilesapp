@@ -87,7 +87,18 @@
             android:id="@+id/spinnerCategory"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
+            android:prompt="@string/choose_category" />
+
+        <!-- כפתור להוספת קטגוריה חדשה -->
+        <Button
+            android:id="@+id/btnAddCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/add_category"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#8B5E5E"
+            android:layout_marginTop="8dp"
+            android:padding="10dp" />
 
         <!-- כפתור שמירה -->
         <Button
@@ -100,7 +111,18 @@
             android:layout_marginTop="24dp"
             android:padding="12dp"
             android:onClick="saveTask" />
+        <!-- כפתור ביטול / חזרה -->
+        <Button
+            android:id="@+id/buttonCancelTask"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="חזור למשימות"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B0A0A0"
+            android:layout_marginTop="12dp"
+            android:padding="12dp"/>
 
 
     </LinearLayout>
+
 </ScrollView>

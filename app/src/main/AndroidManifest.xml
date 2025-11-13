@@ -21,9 +21,11 @@
         android:theme="@style/Theme.Ronilesapp"
         tools:targetApi="31">
         <activity
-            android:name=".singleTaskActivity"
+            android:name=".StringsActivity"
             android:exported="false" />
-        <!-- מסך הכניסה הראשי -->
+        <activity
+            android:name=".singleTaskActivity"
+            android:exported="false" /> <!-- מסך הכניסה הראשי -->
         <activity
             android:name=".LoginActivity"
             android:exported="true">

@@ -21,4 +21,14 @@ public class FBRef {
 
     // Tasks collection
     public static CollectionReference refTasks = FBFS.collection("tasks");
+    public static CollectionReference getUserTasksRef() {
+        String uid = mAuth.getCurrentUser().getUid();
+        return FBFS.collection("Users").document(uid).collection("Tasks");
+    }
+    public static CollectionReference getUserCategoriesRef() {
+        String uid = mAuth.getCurrentUser().getUid();
+        return FBFS.collection("Users").document(uid).collection("Categories");
+    }
+
+
 }
