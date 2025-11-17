@@ -3,6 +3,9 @@ package com.example.ronilesapp;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
+import android.app.AlertDialog;
+import android.widget.Button;
+import android.widget.EditText;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -25,6 +28,7 @@ public class TasksActivity extends AppCompatActivity {
     private TabLayout tabLayoutCategories;
     private ViewPager2 viewPagerTasks;
     private FloatingActionButton fabAddTask;
+    private Button btnAddCategory; // כפתור חדש להוספת קטגוריה
 
     private ActivityResultLauncher<Intent> addTaskLauncher;
 
@@ -40,14 +44,14 @@ public class TasksActivity extends AppCompatActivity {
         tabLayoutCategories = findViewById(R.id.tabLayoutCategories);
         viewPagerTasks = findViewById(R.id.viewPagerTasks);
         fabAddTask = findViewById(R.id.fabAddTask);
+        btnAddCategory = findViewById(R.id.btnAddCategoryTasks); // מחובר ל-XML החדש
 
-        // לאפשר פתיחת מסך הוספת משימה
+        // פתיחת מסך הוספת משימה
         addTaskLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        // אפשר לטעון מחדש את הקטגוריות והמשימות
-                        loadCategoriesAndTasks();
+                        loadCategoriesAndTasks(); // טוען מחדש
                     }
                 }
         );
@@ -57,18 +61,20 @@ public class TasksActivity extends AppCompatActivity {
             addTaskLauncher.launch(intent);
         });
 
+        // כפתור להוספת קטגוריה ישירות מהעמוד
+        btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
+
         // טוענים קטגוריות ומשימות
         loadCategoriesAndTasks();
     }
 
-    private void loadCategoriesAndTasks() {
-        // קודם כל טוענים את הקטגוריות של המשתמש
+    // טוען קטגוריות ויוצר טאבים ופרגמנטים
+    void loadCategoriesAndTasks() {
         FBRef.getUserCategoriesRef().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 categoryList.clear();
                 fragments.clear();
 
-                // מוסיפים קטגוריות מה-Firestore
                 for (QueryDocumentSnapshot doc : task.getResult()) {
                     String categoryName = doc.getString("name");
                     if (categoryName != null) {
@@ -76,20 +82,16 @@ public class TasksActivity extends AppCompatActivity {
                     }
                 }
 
-                // אפשרות "כל המשימות" בכל ההתחלה
+                // "כל המשימות" בטאב הראשון
                 categoryList.add(0, "כל המשימות");
 
-                // יוצרים פרגמנט לכל קטגוריה
                 for (String cat : categoryList) {
                     fragments.add(CategoryTasksFragment.newInstance(cat));
-
                 }
 
-                // יוצרים Adapter ל-ViewPager2
                 pagerAdapter = new CategoryPagerAdapter(this, fragments);
                 viewPagerTasks.setAdapter(pagerAdapter);
 
-                // מחברים את TabLayout עם ViewPager2
                 new TabLayoutMediator(tabLayoutCategories, viewPagerTasks,
                         (tab, position) -> tab.setText(categoryList.get(position))
                 ).attach();
@@ -98,6 +100,41 @@ public class TasksActivity extends AppCompatActivity {
                 Toast.makeText(this, "שגיאה בטעינת קטגוריות", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    // דיאלוג הוספת קטגוריה
+    private void showAddCategoryDialog() {
+        EditText input = new EditText(this);
+        input.setHint("שם קטגוריה");
+
+        new AlertDialog.Builder(this)
+                .setTitle("הוסף קטגוריה")
+                .setView(input)
+                .setPositiveButton("שמור", (dialog, which) -> {
+                    String newCategory = input.getText().toString().trim();
+                    if (!newCategory.isEmpty()) {
+                        saveNewCategory(newCategory);
+                    } else {
+                        Toast.makeText(this, "יש להזין שם קטגוריה", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("ביטול", null)
+                .show();
+    }
+
+    // שמירת קטגוריה חדשה ל-Firestore
+    private void saveNewCategory(String categoryName) {
+        Category category = new Category(categoryName);
+
+        FBRef.getUserCategoriesRef().document(categoryName)
+                .set(category)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "קטגוריה נוספה!", Toast.LENGTH_SHORT).show();
+                    loadCategoriesAndTasks(); // טוען מחדש את הטאבים
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "שגיאה בהוספת קטגוריה", Toast.LENGTH_SHORT).show()
+                );
     }
 
     // Adapter ל־ViewPager2

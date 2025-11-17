@@ -4,12 +4,17 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
@@ -23,6 +28,8 @@ public class CategoryTasksFragment extends Fragment {
     private RecyclerView recyclerView;
     private TasksAdapter adapter;
     private List<Task> taskList = new ArrayList<>();
+    private Button btnDeleteCategory;
+    private Spinner spinnerSort;
 
     public static CategoryTasksFragment newInstance(String category) {
         CategoryTasksFragment fragment = new CategoryTasksFragment();
@@ -44,8 +51,10 @@ public class CategoryTasksFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_category_tasks, container, false);
+
         recyclerView = view.findViewById(R.id.recyclerViewCategoryTasks);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+
         adapter = new TasksAdapter(taskList, (task, isChecked) -> {
             if (isChecked) {
                 FBRef.getUserTasksRef().document(task.getTitle()).delete()
@@ -61,12 +70,59 @@ public class CategoryTasksFragment extends Fragment {
         });
         recyclerView.setAdapter(adapter);
 
+        // Spinner למיון
+        spinnerSort = view.findViewById(R.id.spinnerSort);
+        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_spinner_item,
+                new String[]{"סדר עצמי", "לפי תאריך", "לפי שעה"});
+        sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerSort.setAdapter(sortAdapter);
+
+        spinnerSort.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                sortTasks(position);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+
+        // גרירה לסידור עצמי
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                0) {
+            @Override
+            public boolean onMove(RecyclerView recyclerView,
+                                  RecyclerView.ViewHolder viewHolder,
+                                  RecyclerView.ViewHolder target) {
+                int fromPosition = viewHolder.getAdapterPosition();
+                int toPosition = target.getAdapterPosition();
+                Task movedTask = taskList.remove(fromPosition);
+                taskList.add(toPosition, movedTask);
+                adapter.notifyItemMoved(fromPosition, toPosition);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) { }
+        });
+        itemTouchHelper.attachToRecyclerView(recyclerView);
+
+        // כפתור מחיקת הקטגוריה
+        btnDeleteCategory = view.findViewById(R.id.btnDeleteCategory);
+        if ("כל המשימות".equals(category)) {
+            btnDeleteCategory.setVisibility(View.GONE);
+        } else {
+            btnDeleteCategory.setOnClickListener(v -> deleteCategory());
+        }
+
         loadTasksForCategory();
         return view;
     }
 
     private void loadTasksForCategory() {
-        if ("כל המשימות".equals(category)) {  // אם זה טאב 'כל המשימות'
+        if ("כל המשימות".equals(category)) {
             FBRef.getUserTasksRef()
                     .get()
                     .addOnCompleteListener(task -> {
@@ -80,7 +136,7 @@ public class CategoryTasksFragment extends Fragment {
                             Toast.makeText(getContext(), "שגיאה בטעינת המשימות", Toast.LENGTH_SHORT).show();
                         }
                     });
-        } else {  // סינון רגיל לפי קטגוריה
+        } else {
             FBRef.getUserTasksRef()
                     .whereEqualTo("category", category)
                     .get()
@@ -98,4 +154,50 @@ public class CategoryTasksFragment extends Fragment {
         }
     }
 
+    private void sortTasks(int sortOption) {
+        switch (sortOption) {
+            case 0: // סדר עצמי
+                adapter.notifyDataSetChanged();
+                break;
+            case 1: // לפי תאריך בלבד
+                taskList.sort((t1, t2) -> Integer.compare(t1.getDay(), t2.getDay()));
+                adapter.notifyDataSetChanged();
+                break;
+            case 2: // לפי שעה בלבד
+                taskList.sort((t1, t2) -> Integer.compare(t1.getHour(), t2.getHour()));
+                adapter.notifyDataSetChanged();
+                break;
+        }
+    }
+
+    private void deleteCategory() {
+        new androidx.appcompat.app.AlertDialog.Builder(getContext())
+                .setTitle("מחיקת קטגוריה")
+                .setMessage("האם אתה בטוח שברצונך למחוק את הקטגוריה \"" + category + "\"? המשימות שבתוכה יישארו בטאב 'כל המשימות'.")
+                .setPositiveButton("מחק", (dialog, which) -> {
+                    FBRef.getUserTasksRef()
+                            .whereEqualTo("category", category)
+                            .get()
+                            .addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    for (QueryDocumentSnapshot doc : task.getResult()) {
+                                        doc.getReference().update("category", "ללא קטגוריה");
+                                    }
+                                    FBRef.getUserCategoriesRef().document(category)
+                                            .delete()
+                                            .addOnSuccessListener(aVoid -> {
+                                                Toast.makeText(getContext(), "קטגוריה נמחקה! המשימות נשמרו ב'כל המשימות'.", Toast.LENGTH_SHORT).show();
+                                                if (getActivity() != null) {
+                                                    ((TasksActivity) getActivity()).loadCategoriesAndTasks();
+                                                }
+                                            })
+                                            .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה במחיקת הקטגוריה", Toast.LENGTH_SHORT).show());
+                                } else {
+                                    Toast.makeText(getContext(), "שגיאה בעדכון המשימות", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                })
+                .setNegativeButton("ביטול", null)
+                .show();
+    }
 }

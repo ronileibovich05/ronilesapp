@@ -32,18 +32,33 @@
         app:layout_constraintTop_toBottomOf="@id/tvTasksTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
+    <Button
+        android:id="@+id/btnAddCategoryTasks"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:text="Add Category"
+        android:textSize="14sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#8B5E5E"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tabLayoutCategories"
+        app:layout_constraintStart_toStartOf="parent"/>
 
-    <!-- ViewPager2 שמציג את המשימות לפי קטגוריה -->
+
+    <!-- ViewPager2 עם המשימות -->
+
+    <!-- כפתור הוספת משימה -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPagerTasks"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/tabLayoutCategories"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnAddCategoryTasks"
+        app:layout_constraintVertical_bias="0.0" />
 
-    <!-- כפתור הוספת משימה -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddTask"
         android:layout_width="wrap_content"
@@ -51,7 +66,8 @@
         android:src="@android:drawable/ic_input_add"
         android:backgroundTint="#8B5E5E"
         app:tint="@android:color/white"
+        android:layout_margin="16dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_margin="16dp"/>
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
