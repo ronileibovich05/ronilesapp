@@ -27,7 +27,7 @@ public class Item_TaskActivity extends AppCompatActivity {
     private TimePicker timePicker;
     private Spinner spinnerCategory;
     private Button btnAddCategory;
-    private Button btnCancelTask; // כפתור ביטול
+    private Button btnCancelTask;
 
     private ArrayAdapter<String> categoryAdapter;
     private List<String> categoryList = new ArrayList<>();
@@ -44,25 +44,20 @@ public class Item_TaskActivity extends AppCompatActivity {
         timePicker = findViewById(R.id.timePickerTask);
         spinnerCategory = findViewById(R.id.spinnerCategory);
         btnAddCategory = findViewById(R.id.btnAddCategory);
-        btnCancelTask = findViewById(R.id.buttonCancelTask); // כפתור ביטול
+        btnCancelTask = findViewById(R.id.buttonCancelTask);
 
         // הגדרת רשימת הקטגוריות ל־Spinner
         categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryList);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(categoryAdapter);
 
-        // טוען קטגוריות קיימות מה-Firestore
         loadCategories();
 
-        // מאזין לכפתור הוספת קטגוריה
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
 
-        // מאזין לכפתור ביטול/חזרה
         btnCancelTask.setOnClickListener(v -> {
             if (!editTaskTitle.getText().toString().isEmpty() ||
                     !editTaskDescription.getText().toString().isEmpty()) {
-
-                // מציג אזהרה לפני החזרה
                 new AlertDialog.Builder(this)
                         .setTitle("חזרה")
                         .setMessage("המשימה לא נשמרה. האם אתה בטוח שברצונך לחזור?")
@@ -70,7 +65,6 @@ public class Item_TaskActivity extends AppCompatActivity {
                         .setNegativeButton("לא", null)
                         .show();
             } else {
-                // אם אין שום תוכן בשדות, סוגר ישר
                 finish();
             }
         });
@@ -125,8 +119,12 @@ public class Item_TaskActivity extends AppCompatActivity {
     public void saveTask(View view) {
         String title = editTaskTitle.getText().toString().trim();
         String description = editTaskDescription.getText().toString().trim();
-        String day = datePicker.getDayOfMonth() + "/" + (datePicker.getMonth() + 1) + "/" + datePicker.getYear();
-        String hour = timePicker.getHour() + ":" + timePicker.getMinute();
+
+        int day = datePicker.getDayOfMonth();
+        int hour = timePicker.getHour();
+        int month = datePicker.getMonth() + 1;
+        int year = datePicker.getYear();
+
         String category = spinnerCategory.getSelectedItem() != null
                 ? spinnerCategory.getSelectedItem().toString()
                 : "ללא קטגוריה";
@@ -136,13 +134,14 @@ public class Item_TaskActivity extends AppCompatActivity {
             return;
         }
 
-        Task newTask = new Task(title, description, day, hour, false);
-        newTask.setCategory(category);
+        Task newTask = new Task(title, description, day, hour, category, false);
 
+        // שומר רק את המשימה בקטגוריה שנבחרה
         FBRef.getUserTasksRef().document(title).set(newTask)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(Item_TaskActivity.this, "משימה נוספה!", Toast.LENGTH_SHORT).show();
 
+                    // מחזיר תוצאה רק עם הקטגוריה הנבחרת
                     Intent resultIntent = new Intent();
                     resultIntent.putExtra("newTaskTitle", title);
                     resultIntent.putExtra("newTaskDescription", description);
@@ -157,4 +156,5 @@ public class Item_TaskActivity extends AppCompatActivity {
                         Toast.makeText(Item_TaskActivity.this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
     }
+
 }

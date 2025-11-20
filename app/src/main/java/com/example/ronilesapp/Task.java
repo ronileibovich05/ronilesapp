@@ -3,10 +3,11 @@ package com.example.ronilesapp;
 public class Task {
     private String title;
     private String description;
-    private int day;   // שים לב: int ולא String
-    private int hour;  // int
+    private int day;
+    private int hour;
     private String category;
     private boolean done;
+    private int position; // מיקום בסדר עצמי
 
     public Task() { }
 
@@ -25,10 +26,10 @@ public class Task {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public int getDay() { return day; }    // <-- חובה!
+    public int getDay() { return day; }
     public void setDay(int day) { this.day = day; }
 
-    public int getHour() { return hour; }  // <-- חובה!
+    public int getHour() { return hour; }
     public void setHour(int hour) { this.hour = hour; }
 
     public String getCategory() { return category; }
@@ -36,4 +37,7 @@ public class Task {
 
     public boolean isDone() { return done; }
     public void setDone(boolean done) { this.done = done; }
+
+    public int getPosition() { return position; }
+    public void setPosition(int position) { this.position = position; }
 }
