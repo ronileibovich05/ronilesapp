@@ -8,6 +8,7 @@ public class Task {
     private String category;
     private boolean done;
     private int position; // מיקום בסדר עצמי
+    private long creationTime; // ⭐ זמן יצירה
 
     public Task() { }
 
@@ -18,6 +19,7 @@ public class Task {
         this.hour = hour;
         this.category = category;
         this.done = done;
+        this.creationTime = System.currentTimeMillis();
     }
 
     public String getTitle() { return title; }
@@ -40,4 +42,7 @@ public class Task {
 
     public int getPosition() { return position; }
     public void setPosition(int position) { this.position = position; }
+
+    public long getCreationTime() { return creationTime; }
+    public void setCreationTime(long creationTime) { this.creationTime = creationTime; }
 }

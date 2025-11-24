@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -20,6 +21,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CategoryTasksFragment extends Fragment {
 
@@ -29,8 +31,11 @@ public class CategoryTasksFragment extends Fragment {
     private RecyclerView recyclerView;
     private TasksAdapter adapter;
     private List<Task> taskList = new ArrayList<>();
+    private List<Task> displayedTaskList = new ArrayList<>();
     private Button btnDeleteCategory;
     private Spinner spinnerSort;
+    private EditText searchEditText; // ⭐ חיפוש
+
     private int currentSortOption = 0;
 
     public static CategoryTasksFragment newInstance(String category) {
@@ -57,43 +62,57 @@ public class CategoryTasksFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recyclerViewCategoryTasks);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // מאזין לגרירה
+        searchEditText = view.findViewById(R.id.editTextSearch); // ⭐ EditText חיפוש
+        searchEditText.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterTasks(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) { }
+        });
+
+        // ⭐ גרירה
         TasksAdapter.OnStartDragListener dragListener = viewHolder -> {
-            ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
-                    ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
-                @Override
-                public boolean onMove(RecyclerView recyclerView,
-                                      RecyclerView.ViewHolder viewHolder,
-                                      RecyclerView.ViewHolder target) {
+            ItemTouchHelper itemTouchHelper = new ItemTouchHelper(
+                    new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+                        @Override
+                        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
+                                              RecyclerView.ViewHolder target) {
+                            int from = viewHolder.getAdapterPosition();
+                            int to = target.getAdapterPosition();
 
-                    int fromPosition = viewHolder.getAdapterPosition();
-                    int toPosition = target.getAdapterPosition();
+                            Task moved = displayedTaskList.remove(from);
+                            displayedTaskList.add(to, moved);
 
-                    Task movedTask = taskList.remove(fromPosition);
-                    taskList.add(toPosition, movedTask);
-                    adapter.notifyItemMoved(fromPosition, toPosition);
+                            adapter.notifyItemMoved(from, to);
 
-                    for (int i = 0; i < taskList.size(); i++) {
-                        Task t = taskList.get(i);
-                        t.setPosition(i);
-                        FBRef.getUserTasksRef().document(t.getTitle()).update("position", i);
-                    }
-                    return true;
-                }
+                            for (int i = 0; i < displayedTaskList.size(); i++) {
+                                Task t = displayedTaskList.get(i);
+                                t.setPosition(i);
+                                FBRef.getUserTasksRef().document(t.getTitle()).update("position", i);
+                            }
+                            return true;
+                        }
 
-                @Override
-                public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) { }
-            });
+                        @Override
+                        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {}
+                    });
+
             itemTouchHelper.attachToRecyclerView(recyclerView);
         };
 
-        adapter = new TasksAdapter(taskList, (task, isChecked) -> {
+        adapter = new TasksAdapter(displayedTaskList, (task, isChecked) -> {
             if (isChecked) {
                 FBRef.getUserTasksRef().document(task.getTitle()).delete()
                         .addOnSuccessListener(aVoid -> {
-                            int pos = taskList.indexOf(task);
+                            int pos = displayedTaskList.indexOf(task);
                             if (pos != -1) {
-                                taskList.remove(pos);
+                                displayedTaskList.remove(pos);
                                 adapter.notifyItemRemoved(pos);
                             }
                             Toast.makeText(getContext(), "✅ משימה הושלמה!", Toast.LENGTH_SHORT).show();
@@ -103,20 +122,18 @@ public class CategoryTasksFragment extends Fragment {
 
         recyclerView.setAdapter(adapter);
 
-        // Spinner למיון
         spinnerSort = view.findViewById(R.id.spinnerSort);
         ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(getContext(),
                 android.R.layout.simple_spinner_item,
-                new String[]{"סדר עצמי", "לפי תאריך", "לפי שעה"});
+                new String[]{"סדר הוספה", "סדר עצמי", "לפי תאריך", "לפי שעה"});
         sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSort.setAdapter(sortAdapter);
 
         spinnerSort.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+            public void onItemSelected(android.widget.AdapterView<?> parent, View v, int position, long id) {
                 currentSortOption = position;
-                sortTasks(currentSortOption);
-                adapter.setDragEnabled(position == 0); // גרירה רק בסדר עצמי
+                sortTasks(position);
             }
 
             @Override
@@ -128,20 +145,39 @@ public class CategoryTasksFragment extends Fragment {
         else btnDeleteCategory.setOnClickListener(v -> deleteCategory());
 
         loadTasksForCategory();
+
         return view;
     }
 
     private void sortTasks(int sortOption) {
         switch (sortOption) {
-            case 0:
-                taskList.sort((t1, t2) -> Integer.compare(t1.getPosition(), t2.getPosition()));
+            case 0: // סדר הוספה
+                displayedTaskList.sort((t1, t2) -> Long.compare(t1.getCreationTime(), t2.getCreationTime()));
                 break;
-            case 1:
-                taskList.sort((t1, t2) -> Integer.compare(t1.getDay(), t2.getDay()));
+            case 1: // סדר עצמי
+                displayedTaskList.sort((t1, t2) -> Integer.compare(t1.getPosition(), t2.getPosition()));
                 break;
-            case 2:
-                taskList.sort((t1, t2) -> Integer.compare(t1.getHour(), t2.getHour()));
+            case 2: // לפי תאריך
+                displayedTaskList.sort((t1, t2) -> Integer.compare(t1.getDay(), t2.getDay()));
                 break;
+            case 3: // לפי שעה
+                displayedTaskList.sort((t1, t2) -> Integer.compare(t1.getHour(), t2.getHour()));
+                break;
+        }
+        adapter.notifyDataSetChanged();
+    }
+
+    private void filterTasks(String query) {
+        displayedTaskList.clear();
+        if (query.isEmpty()) {
+            displayedTaskList.addAll(taskList);
+        } else {
+            for (Task t : taskList) {
+                if (t.getTitle().toLowerCase().contains(query.toLowerCase()) ||
+                        t.getDescription().toLowerCase().contains(query.toLowerCase())) {
+                    displayedTaskList.add(t);
+                }
+            }
         }
         adapter.notifyDataSetChanged();
     }
@@ -163,24 +199,24 @@ public class CategoryTasksFragment extends Fragment {
                     taskObj.setDone(Boolean.TRUE.equals(doc.getBoolean("done")));
 
                     Object dayObj = doc.get("day");
-                    int dayInt = (dayObj instanceof Number) ? ((Number) dayObj).intValue() : 0;
-                    taskObj.setDay(dayInt);
+                    taskObj.setDay(dayObj instanceof Number ? ((Number) dayObj).intValue() : 0);
 
                     Object hourObj = doc.get("hour");
-                    int hourInt = (hourObj instanceof Number) ? ((Number) hourObj).intValue() : 0;
-                    taskObj.setHour(hourInt);
+                    taskObj.setHour(hourObj instanceof Number ? ((Number) hourObj).intValue() : 0);
 
                     Object posObj = doc.get("position");
-                    int posInt = (posObj instanceof Number) ? ((Number) posObj).intValue() : taskList.size();
-                    taskObj.setPosition(posInt);
+                    taskObj.setPosition(posObj instanceof Number ? ((Number) posObj).intValue() : taskList.size());
+
+                    Object creationObj = doc.get("creationTime");
+                    long creationLong = (creationObj instanceof Number) ? ((Number) creationObj).longValue() : System.currentTimeMillis();
+                    taskObj.setCreationTime(creationLong);
 
                     taskList.add(taskObj);
                 }
 
-                if (currentSortOption == 0)
-                    taskList.sort((t1, t2) -> Integer.compare(t1.getPosition(), t2.getPosition()));
-
-                adapter.notifyDataSetChanged();
+                displayedTaskList.clear();
+                displayedTaskList.addAll(taskList);
+                sortTasks(currentSortOption);
             } else {
                 Toast.makeText(getContext(), "שגיאה בטעינת המשימות", Toast.LENGTH_SHORT).show();
             }
@@ -190,49 +226,25 @@ public class CategoryTasksFragment extends Fragment {
     private void deleteCategory() {
         new androidx.appcompat.app.AlertDialog.Builder(getContext())
                 .setTitle("מחיקת קטגוריה")
-                .setMessage("האם אתה בטוח שברצונך למחוק את הקטגוריה \"" + category + "\"? המשימות שבתוכה יישארו בטאב 'כל המשימות'.")
+                .setMessage("האם למחוק את הקטגוריה \"" + category + "\"? המשימות יועברו ל'כל המשימות'.")
                 .setPositiveButton("מחק", (dialog, which) -> {
-                    FBRef.getUserTasksRef().whereEqualTo("category", category)
-                            .get().addOnCompleteListener(task -> {
+                    FBRef.getUserTasksRef().whereEqualTo("category", category).get()
+                            .addOnCompleteListener(task -> {
                                 if (task.isSuccessful()) {
-                                    for (QueryDocumentSnapshot doc : task.getResult()) {
+                                    for (QueryDocumentSnapshot doc : task.getResult())
                                         doc.getReference().update("category", "ללא קטגוריה");
-                                    }
+
                                     FBRef.getUserCategoriesRef().document(category).delete()
                                             .addOnSuccessListener(aVoid -> {
-                                                Toast.makeText(getContext(), "קטגוריה נמחקה! המשימות נשמרו ב'כל המשימות'.", Toast.LENGTH_SHORT).show();
+                                                Toast.makeText(getContext(), "קטגוריה נמחקה", Toast.LENGTH_SHORT).show();
                                                 if (getActivity() != null)
                                                     ((TasksActivity) getActivity()).loadCategoriesAndTasks();
                                             })
-                                            .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה במחיקת הקטגוריה", Toast.LENGTH_SHORT).show());
+                                            .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה במחיקה", Toast.LENGTH_SHORT).show());
                                 }
                             });
                 })
                 .setNegativeButton("ביטול", null)
                 .show();
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (data != null && resultCode == getActivity().RESULT_OK) {
-            String title = data.getStringExtra("newTaskTitle");
-            String description = data.getStringExtra("newTaskDescription");
-            int day = data.getIntExtra("newTaskDay", 0);
-            int hour = data.getIntExtra("newTaskHour", 0);
-            String taskCategory = data.getStringExtra("newTaskCategory");
-            boolean done = data.getBooleanExtra("newTaskDone", false);
-
-            if (taskCategory == null) taskCategory = "ללא קטגוריה";
-
-            if (category.equals("כל המשימות") || category.equals(taskCategory)) {
-                Task newTask = new Task(title, description, day, hour, taskCategory, done);
-                newTask.setPosition(taskList.size());
-                taskList.add(newTask);
-
-                sortTasks(currentSortOption);
-                adapter.notifyDataSetChanged();
-            }
-        }
     }
 }

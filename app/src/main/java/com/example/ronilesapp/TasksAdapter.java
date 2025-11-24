@@ -18,7 +18,7 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
     private final List<Task> taskList;
     private final OnTaskCheckedListener listener;
     private final OnStartDragListener dragListener;
-    private boolean dragEnabled = true; // אפשרות לגרירה
+    private boolean dragEnabled = true;
 
     public interface OnTaskCheckedListener {
         void onTaskChecked(Task task, boolean isChecked);
@@ -63,7 +63,6 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             if (listener != null) listener.onTaskChecked(task, isChecked);
         });
 
-        // גרירה
         if (dragEnabled) {
             holder.dragHandle.setVisibility(View.VISIBLE);
             holder.dragHandle.setOnTouchListener((v, event) -> {

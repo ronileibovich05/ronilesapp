@@ -3,28 +3,35 @@ package com.example.ronilesapp;
 import static com.example.ronilesapp.FBRef.*;
 
 import android.Manifest;
-import android.content.ContentValues;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
+import android.os.Environment;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import androidx.core.content.FileProvider;
+import java.io.File;
+
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -32,7 +39,7 @@ public class RegisterActivity extends AppCompatActivity {
     private CheckBox notificationsCheckBox;
     private ImageView profileImageView;
 
-    private Uri selectedImageUri;  // תמונה שנבחרה
+    private Uri selectedImageUri;  // תמונה שנבחרה מהגלריה או מצלמה
     private Uri cameraImageUri;    // URI זמני למצלמה
 
     private ActivityResultLauncher<String> pickImageLauncher;
@@ -70,7 +77,7 @@ public class RegisterActivity extends AppCompatActivity {
         cameraLauncher = registerForActivityResult(
                 new ActivityResultContracts.TakePicture(),
                 result -> {
-                    if (result) {
+                    if (result && cameraImageUri != null) {
                         selectedImageUri = cameraImageUri;
                         profileImageView.setImageURI(selectedImageUri);
                     }
@@ -103,17 +110,45 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void openCamera() {
-        cameraImageUri = createImageUri();
-        if (cameraImageUri != null) cameraLauncher.launch(cameraImageUri);
-        else Toast.makeText(this, "שגיאה ביצירת קובץ תמונה", Toast.LENGTH_SHORT).show();
+        try {
+            File imageFile = createImageFile(); // יוצרים קובץ פיזי
+            if (imageFile != null) {
+                cameraImageUri = FileProvider.getUriForFile(
+                        this,
+                        getApplicationContext().getPackageName() + ".provider",
+                        imageFile
+                );
+                cameraLauncher.launch(cameraImageUri);
+            } else {
+                Toast.makeText(this, "שגיאה ביצירת קובץ תמונה", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "שגיאה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private Uri createImageUri() {
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.TITLE, "New Picture");
-        values.put(MediaStore.Images.Media.DESCRIPTION, "From Camera");
-        return getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+    private File createImageFile() throws IOException {
+        String fileName = "IMG_" + System.currentTimeMillis();
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        return File.createTempFile(fileName, ".jpg", storageDir);
     }
+
+
+    private Uri createImageUri() {
+        File imagesDir = new File(getFilesDir(), "images");
+        if (!imagesDir.exists()) imagesDir.mkdirs();
+
+        String fileName = "IMG_" + System.currentTimeMillis() + ".jpg";
+        File imageFile = new File(imagesDir, fileName);
+
+        return FileProvider.getUriForFile(
+                this,
+                getApplicationContext().getPackageName() + ".provider",
+                imageFile
+
+        );
+    }
+
 
     // הרשמה
     public void registerUser(View view) {
@@ -152,9 +187,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         imageRef.putFile(imageUri)
                 .addOnSuccessListener(taskSnapshot -> imageRef.getDownloadUrl()
-                        .addOnSuccessListener(uri -> {
-                            saveUserToFirestore(uid, firstName, lastName, email, notifications, uri.toString());
-                        }))
+                        .addOnSuccessListener(uri -> saveUserToFirestore(uid, firstName, lastName, email, notifications, uri.toString())))
                 .addOnFailureListener(e -> Toast.makeText(RegisterActivity.this,
                         "טעינת התמונה נכשלה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
@@ -172,7 +205,6 @@ public class RegisterActivity extends AppCompatActivity {
                 .set(userMap)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(RegisterActivity.this, "הרשמה הצליחה!", Toast.LENGTH_SHORT).show();
-                    // מעבר אוטומטי למסך המשימות
                     startActivity(new Intent(RegisterActivity.this, TasksActivity.class));
                     finish();
                 })
