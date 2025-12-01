@@ -20,13 +20,8 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
     private final OnStartDragListener dragListener;
     private boolean dragEnabled = true;
 
-    public interface OnTaskCheckedListener {
-        void onTaskChecked(Task task, boolean isChecked);
-    }
-
-    public interface OnStartDragListener {
-        void onStartDrag(RecyclerView.ViewHolder viewHolder);
-    }
+    public interface OnTaskCheckedListener { void onTaskChecked(Task task, boolean isChecked); }
+    public interface OnStartDragListener { void onStartDrag(RecyclerView.ViewHolder viewHolder); }
 
     public TasksAdapter(List<Task> taskList, OnTaskCheckedListener listener, OnStartDragListener dragListener) {
         this.taskList = taskList;
@@ -34,16 +29,10 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         this.dragListener = dragListener;
     }
 
-    public void setDragEnabled(boolean enabled) {
-        this.dragEnabled = enabled;
-        notifyDataSetChanged();
-    }
-
     @NonNull
     @Override
     public TaskViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.single_task, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.single_task, parent, false);
         return new TaskViewHolder(view);
     }
 
@@ -53,9 +42,13 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
 
         holder.tvTitle.setText(task.getTitle());
         holder.tvDescription.setText(task.getDescription());
-        holder.tvDay.setText(String.valueOf(task.getDay()));
-        holder.tvHour.setText(String.valueOf(task.getHour()));
         holder.tvCategory.setText(task.getCategory());
+
+        String dateString = String.format("%02d/%02d/%04d", task.getDay(), task.getMonth(), task.getYear());
+        String timeString = String.format("%02d:%02d", task.getHour(), task.getMinute());
+
+        holder.tvDay.setText("תאריך: " + dateString);
+        holder.tvHour.setText("שעה: " + timeString);
 
         holder.checkBoxDone.setOnCheckedChangeListener(null);
         holder.checkBoxDone.setChecked(task.isDone());
@@ -71,15 +64,11 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
                 }
                 return false;
             });
-        } else {
-            holder.dragHandle.setVisibility(View.GONE);
-        }
+        } else holder.dragHandle.setVisibility(View.GONE);
     }
 
     @Override
-    public int getItemCount() {
-        return taskList.size();
-    }
+    public int getItemCount() { return taskList.size(); }
 
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvDescription, tvDay, tvHour, tvCategory;

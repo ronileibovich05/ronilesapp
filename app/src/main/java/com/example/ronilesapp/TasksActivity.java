@@ -28,7 +28,7 @@ public class TasksActivity extends AppCompatActivity {
     private TabLayout tabLayoutCategories;
     private ViewPager2 viewPagerTasks;
     private FloatingActionButton fabAddTask;
-    private Button btnAddCategory; // כפתור חדש להוספת קטגוריה
+    private Button btnAddCategory;
 
     private ActivityResultLauncher<Intent> addTaskLauncher;
 
@@ -44,7 +44,7 @@ public class TasksActivity extends AppCompatActivity {
         tabLayoutCategories = findViewById(R.id.tabLayoutCategories);
         viewPagerTasks = findViewById(R.id.viewPagerTasks);
         fabAddTask = findViewById(R.id.fabAddTask);
-        btnAddCategory = findViewById(R.id.btnAddCategoryTasks); // מחובר ל-XML החדש
+        btnAddCategory = findViewById(R.id.btnAddCategoryTasks);
 
         // פתיחת מסך הוספת משימה
         addTaskLauncher = registerForActivityResult(
@@ -61,11 +61,13 @@ public class TasksActivity extends AppCompatActivity {
             addTaskLauncher.launch(intent);
         });
 
-        // כפתור להוספת קטגוריה ישירות מהעמוד
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
 
         // טוענים קטגוריות ומשימות
         loadCategoriesAndTasks();
+
+        // 🔹 מתקן את החודש והשעה של כל המשימות הישנות (רק פעם אחת)
+        updateTasksMonthAndTime();
     }
 
     // טוען קטגוריות ויוצר טאבים ופרגמנטים
@@ -77,12 +79,10 @@ public class TasksActivity extends AppCompatActivity {
 
                 for (QueryDocumentSnapshot doc : task.getResult()) {
                     String categoryName = doc.getString("name");
-                    if (categoryName != null) {
-                        categoryList.add(categoryName);
-                    }
+                    if (categoryName != null) categoryList.add(categoryName);
                 }
 
-                // "כל המשימות" בטאב הראשון
+                // הוספת טאב "כל המשימות" ראשון
                 categoryList.add(0, "כל המשימות");
 
                 for (String cat : categoryList) {
@@ -102,7 +102,7 @@ public class TasksActivity extends AppCompatActivity {
         });
     }
 
-    // דיאלוג הוספת קטגוריה
+    // דיאלוג להוספת קטגוריה
     private void showAddCategoryDialog() {
         EditText input = new EditText(this);
         input.setHint("שם קטגוריה");
@@ -112,17 +112,13 @@ public class TasksActivity extends AppCompatActivity {
                 .setView(input)
                 .setPositiveButton("שמור", (dialog, which) -> {
                     String newCategory = input.getText().toString().trim();
-                    if (!newCategory.isEmpty()) {
-                        saveNewCategory(newCategory);
-                    } else {
-                        Toast.makeText(this, "יש להזין שם קטגוריה", Toast.LENGTH_SHORT).show();
-                    }
+                    if (!newCategory.isEmpty()) saveNewCategory(newCategory);
+                    else Toast.makeText(this, "יש להזין שם קטגוריה", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("ביטול", null)
                 .show();
     }
 
-    // שמירת קטגוריה חדשה ל-Firestore
     private void saveNewCategory(String categoryName) {
         Category category = new Category(categoryName);
 
@@ -130,14 +126,47 @@ public class TasksActivity extends AppCompatActivity {
                 .set(category)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "קטגוריה נוספה!", Toast.LENGTH_SHORT).show();
-                    loadCategoriesAndTasks(); // טוען מחדש את הטאבים
+                    loadCategoriesAndTasks();
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "שגיאה בהוספת קטגוריה", Toast.LENGTH_SHORT).show()
                 );
     }
 
-    // Adapter ל־ViewPager2
+    // 🔹 פונקציה לתיקון החודש והשעה של משימות קיימות
+    private void updateTasksMonthAndTime() {
+        FBRef.getUserTasksRef().get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                for (QueryDocumentSnapshot doc : task.getResult()) {
+                    Task t = doc.toObject(Task.class);
+                    boolean needsUpdate = false;
+
+                    // אם החודש 0 או הדקה 0 – מתקנים לפי זמן יצירת המשימה
+                    if (t.getMonth() == 0 || t.getMinute() == 0) {
+                        java.util.Calendar cal = java.util.Calendar.getInstance();
+                        cal.setTimeInMillis(t.getCreationTime());
+
+                        t.setMonth(cal.get(java.util.Calendar.MONTH) + 1);
+                        t.setDay(cal.get(java.util.Calendar.DAY_OF_MONTH));
+                        t.setHour(cal.get(java.util.Calendar.HOUR_OF_DAY));
+                        t.setMinute(cal.get(java.util.Calendar.MINUTE));
+
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate) {
+                        FBRef.getUserTasksRef().document(doc.getId())
+                                .set(t)
+                                .addOnSuccessListener(aVoid -> System.out.println("Task updated: " + t.getTitle()))
+                                .addOnFailureListener(e -> System.out.println("Error updating task: " + t.getTitle()));
+                    }
+                }
+            } else {
+                System.out.println("Error fetching tasks for update");
+            }
+        });
+    }
+
     private static class CategoryPagerAdapter extends FragmentStateAdapter {
         private final List<Fragment> fragments;
 

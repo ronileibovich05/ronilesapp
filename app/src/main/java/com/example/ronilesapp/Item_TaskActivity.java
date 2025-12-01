@@ -1,17 +1,16 @@
 package com.example.ronilesapp;
 
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TimePicker;
 import android.widget.Toast;
+import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -32,7 +31,6 @@ public class Item_TaskActivity extends AppCompatActivity {
     private ArrayAdapter<String> categoryAdapter;
     private List<String> categoryList = new ArrayList<>();
 
-    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,7 +44,6 @@ public class Item_TaskActivity extends AppCompatActivity {
         btnAddCategory = findViewById(R.id.btnAddCategory);
         btnCancelTask = findViewById(R.id.buttonCancelTask);
 
-        // הגדרת רשימת הקטגוריות ל־Spinner
         categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryList);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(categoryAdapter);
@@ -56,8 +53,7 @@ public class Item_TaskActivity extends AppCompatActivity {
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
 
         btnCancelTask.setOnClickListener(v -> {
-            if (!editTaskTitle.getText().toString().isEmpty() ||
-                    !editTaskDescription.getText().toString().isEmpty()) {
+            if (!editTaskTitle.getText().toString().isEmpty() || !editTaskDescription.getText().toString().isEmpty()) {
                 new AlertDialog.Builder(this)
                         .setTitle("חזרה")
                         .setMessage("המשימה לא נשמרה. האם אתה בטוח שברצונך לחזור?")
@@ -86,18 +82,15 @@ public class Item_TaskActivity extends AppCompatActivity {
 
     private void showAddCategoryDialog() {
         EditText input = new EditText(this);
-        input.setHint(getString(R.string.new_category));
+        input.setHint("שם קטגוריה");
 
         new AlertDialog.Builder(this)
-                .setTitle(getString(R.string.add_category))
+                .setTitle("הוסף קטגוריה")
                 .setView(input)
                 .setPositiveButton("שמור", (dialog, which) -> {
                     String newCategory = input.getText().toString().trim();
-                    if (!newCategory.isEmpty()) {
-                        saveNewCategory(newCategory);
-                    } else {
-                        Toast.makeText(this, "יש להזין שם קטגוריה", Toast.LENGTH_SHORT).show();
-                    }
+                    if (!newCategory.isEmpty()) saveNewCategory(newCategory);
+                    else Toast.makeText(this, "יש להזין שם קטגוריה", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("ביטול", null)
                 .show();
@@ -121,9 +114,10 @@ public class Item_TaskActivity extends AppCompatActivity {
         String description = editTaskDescription.getText().toString().trim();
 
         int day = datePicker.getDayOfMonth();
+        int month = datePicker.getMonth() + 1; // DatePicker מתחיל מ-0
+        int year = datePicker.getYear();       // ✅ השנה מה-DatePicker
         int hour = timePicker.getHour();
-        int month = datePicker.getMonth() + 1;
-        int year = datePicker.getYear();
+        int minute = timePicker.getMinute();
 
         String category = spinnerCategory.getSelectedItem() != null
                 ? spinnerCategory.getSelectedItem().toString()
@@ -134,22 +128,27 @@ public class Item_TaskActivity extends AppCompatActivity {
             return;
         }
 
-        Task newTask = new Task(title, description, day, hour, category, false);
+        // יוצרים את המשימה
+        Task newTask = new Task(title, description, day, month, year, hour, minute, category, false);
 
-        // שומר רק את המשימה בקטגוריה שנבחרה
+        // שמירה ב-Firebase כולל שנה
         FBRef.getUserTasksRef().document(title).set(newTask)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(Item_TaskActivity.this, "משימה נוספה!", Toast.LENGTH_SHORT).show();
 
-                    // מחזיר תוצאה רק עם הקטגוריה הנבחרת
+                    // החזרת תוצאה ל-Activity הקודם אם צריך
                     Intent resultIntent = new Intent();
                     resultIntent.putExtra("newTaskTitle", title);
                     resultIntent.putExtra("newTaskDescription", description);
                     resultIntent.putExtra("newTaskDay", day);
+                    resultIntent.putExtra("newTaskMonth", month);
+                    resultIntent.putExtra("newTaskYear", year); // ✅ שנה
                     resultIntent.putExtra("newTaskHour", hour);
+                    resultIntent.putExtra("newTaskMinute", minute);
                     resultIntent.putExtra("newTaskCategory", category);
                     resultIntent.putExtra("newTaskDone", false);
                     setResult(RESULT_OK, resultIntent);
+
                     finish();
                 })
                 .addOnFailureListener(e ->

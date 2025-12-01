@@ -17,21 +17,18 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import androidx.core.content.FileProvider;
-import java.io.File;
-
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -133,23 +130,6 @@ public class RegisterActivity extends AppCompatActivity {
         return File.createTempFile(fileName, ".jpg", storageDir);
     }
 
-
-    private Uri createImageUri() {
-        File imagesDir = new File(getFilesDir(), "images");
-        if (!imagesDir.exists()) imagesDir.mkdirs();
-
-        String fileName = "IMG_" + System.currentTimeMillis() + ".jpg";
-        File imageFile = new File(imagesDir, fileName);
-
-        return FileProvider.getUriForFile(
-                this,
-                getApplicationContext().getPackageName() + ".provider",
-                imageFile
-
-        );
-    }
-
-
     // הרשמה
     public void registerUser(View view) {
         String firstName = firstNameEditText.getText().toString().trim();
@@ -174,22 +154,44 @@ public class RegisterActivity extends AppCompatActivity {
                             saveUserToFirestore(uid, firstName, lastName, email, notifications, null);
                         }
                     } else {
-                        Toast.makeText(RegisterActivity.this,
-                                "ההרשמה נכשלה: " + task.getException().getMessage(),
-                                Toast.LENGTH_LONG).show();
+                        if (task.getException() instanceof FirebaseAuthUserCollisionException) {
+                            new AlertDialog.Builder(RegisterActivity.this)
+                                    .setTitle("המייל כבר קיים")
+                                    .setMessage("המייל כבר רשום. רוצה להיכנס במקום להירשם?")
+                                    .setPositiveButton("כניסה", (dialog, which) -> {
+                                        Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                                        intent.putExtra("email", email);
+                                        startActivity(intent);
+                                    })
+                                    .setNegativeButton("בטל", null)
+                                    .show();
+                        } else {
+                            Toast.makeText(RegisterActivity.this,
+                                    "ההרשמה נכשלה: " + task.getException().getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
                     }
                 });
     }
 
     private void uploadImageAndSaveUser(String uid, String firstName, String lastName,
                                         String email, boolean notifications, Uri imageUri) {
+        if (imageUri == null) {
+            saveUserToFirestore(uid, firstName, lastName, email, notifications, null);
+            return;
+        }
+
         StorageReference imageRef = storageRef.child("profileImages/" + uid + ".jpg");
 
         imageRef.putFile(imageUri)
                 .addOnSuccessListener(taskSnapshot -> imageRef.getDownloadUrl()
                         .addOnSuccessListener(uri -> saveUserToFirestore(uid, firstName, lastName, email, notifications, uri.toString())))
-                .addOnFailureListener(e -> Toast.makeText(RegisterActivity.this,
-                        "טעינת התמונה נכשלה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> {
+                    Toast.makeText(RegisterActivity.this,
+                            "טעינת התמונה נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    // נשמור את המשתמש גם ללא תמונה
+                    saveUserToFirestore(uid, firstName, lastName, email, notifications, null);
+                });
     }
 
     private void saveUserToFirestore(String uid, String firstName, String lastName,
@@ -209,7 +211,7 @@ public class RegisterActivity extends AppCompatActivity {
                     finish();
                 })
                 .addOnFailureListener(e -> Toast.makeText(RegisterActivity.this,
-                        "הרשמה נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                        "שמירת המשתמש נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 
     // מעבר למסך התחברות
