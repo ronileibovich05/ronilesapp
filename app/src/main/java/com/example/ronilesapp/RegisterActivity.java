@@ -41,7 +41,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<String> pickImageLauncher;
     private ActivityResultLauncher<Uri> cameraLauncher;
-    private ActivityResultLauncher<String> requestCameraPermissionLauncher;
+    private ActivityResultLauncher<String[]> requestPermissionsLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,34 +81,40 @@ public class RegisterActivity extends AppCompatActivity {
                 }
         );
 
-        // בקשת הרשאת מצלמה
-        requestCameraPermissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    if (isGranted) openCamera();
-                    else Toast.makeText(this, "הרשאת מצלמה דרושה כדי לצלם תמונה", Toast.LENGTH_SHORT).show();
+        // בקשת הרשאות CAMERA בלבד
+        requestPermissionsLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestMultiplePermissions(),
+                result -> {
+                    if (result.getOrDefault(Manifest.permission.CAMERA, false)) {
+                        openCamera();
+                    } else {
+                        Toast.makeText(this, "הרשאות דרושות כדי לצלם תמונה", Toast.LENGTH_SHORT).show();
+                    }
                 }
         );
     }
 
-    // בוחרים תמונה מהגלריה
+    // כפתור גלריה
     public void chooseImage(View view) {
         pickImageLauncher.launch("image/*");
     }
 
-    // מצלמים תמונה
+    // כפתור מצלמה
     public void takePhoto(View view) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
-        } else {
-            openCamera();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            boolean cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+
+            if (!cameraGranted) {
+                requestPermissionsLauncher.launch(new String[]{Manifest.permission.CAMERA});
+                return;
+            }
         }
+        openCamera();
     }
 
     private void openCamera() {
         try {
-            File imageFile = createImageFile(); // יוצרים קובץ פיזי
+            File imageFile = createImageFile();
             if (imageFile != null) {
                 cameraImageUri = FileProvider.getUriForFile(
                         this,
@@ -127,6 +133,7 @@ public class RegisterActivity extends AppCompatActivity {
     private File createImageFile() throws IOException {
         String fileName = "IMG_" + System.currentTimeMillis();
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        if (!storageDir.exists()) storageDir.mkdirs(); // לוודא שהתקייה קיימת
         return File.createTempFile(fileName, ".jpg", storageDir);
     }
 
@@ -147,7 +154,6 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         String uid = mAuth.getCurrentUser().getUid();
-
                         if (selectedImageUri != null) {
                             uploadImageAndSaveUser(uid, firstName, lastName, email, notifications, selectedImageUri);
                         } else {
@@ -189,7 +195,6 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(RegisterActivity.this,
                             "טעינת התמונה נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    // נשמור את המשתמש גם ללא תמונה
                     saveUserToFirestore(uid, firstName, lastName, email, notifications, null);
                 });
     }
@@ -214,7 +219,6 @@ public class RegisterActivity extends AppCompatActivity {
                         "שמירת המשתמש נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 
-    // מעבר למסך התחברות
     public void goToLogin(View view) {
         Intent intent = new Intent(this, LoginActivity.class);
         startActivity(intent);

@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -46,12 +47,32 @@ public class TasksActivity extends AppCompatActivity {
         fabAddTask = findViewById(R.id.fabAddTask);
         btnAddCategory = findViewById(R.id.btnAddCategoryTasks);
 
+        // 🔹 סרגל כלים תחתון
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigation);
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            switch (item.getItemId()) {
+                case R.id.nav_profile:
+                    Intent profileIntent = new Intent(TasksActivity.this, ProfileActivity.class);
+                    startActivity(profileIntent);
+                    return true;
+                case R.id.nav_settings:
+                    Intent settingsIntent = new Intent(TasksActivity.this, SettingsActivity.class);
+                    startActivity(settingsIntent);
+                    return true;
+                case R.id.nav_home:
+                    // כבר ב־TasksActivity – אין פעולה
+                    return true;
+                default:
+                    return false;
+            }
+        });
+
         // פתיחת מסך הוספת משימה
         addTaskLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        loadCategoriesAndTasks(); // טוען מחדש
+                        loadCategoriesAndTasks(); // טוען מחדש את המשימות
                     }
                 }
         );
@@ -141,7 +162,6 @@ public class TasksActivity extends AppCompatActivity {
                     Task t = doc.toObject(Task.class);
                     boolean needsUpdate = false;
 
-                    // אם החודש 0 או הדקה 0 – מתקנים לפי זמן יצירת המשימה
                     if (t.getMonth() == 0 || t.getMinute() == 0) {
                         java.util.Calendar cal = java.util.Calendar.getInstance();
                         cal.setTimeInMillis(t.getCreationTime());
@@ -167,6 +187,7 @@ public class TasksActivity extends AppCompatActivity {
         });
     }
 
+    // 🔹 Adapter לפרגמנטים של קטגוריות
     private static class CategoryPagerAdapter extends FragmentStateAdapter {
         private final List<Fragment> fragments;
 

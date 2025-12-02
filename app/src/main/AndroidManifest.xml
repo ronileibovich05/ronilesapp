@@ -4,8 +4,6 @@
 
     <!-- הרשאות -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -33,7 +31,6 @@
                 android:resource="@xml/paths"/>
         </provider>
 
-
         <!-- מסך הכניסה הראשי -->
         <activity android:name=".LoginActivity" android:exported="true">
             <intent-filter>
@@ -51,6 +48,7 @@
         <activity android:name=".TasksActivity" android:exported="false" />
         <!-- מסך יצירת משימה חדשה -->
         <activity android:name=".Item_TaskActivity" android:exported="false" />
+
     </application>
 
 </manifest>
