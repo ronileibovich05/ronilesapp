@@ -56,7 +56,24 @@ public class CategoryTasksFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.fragment_category_tasks, container, false);
+        // 🔹 מיישמים את ה-Theme הנבחר
+        android.content.SharedPreferences prefs = getActivity()
+                .getSharedPreferences("AppSettingsPrefs", android.content.Context.MODE_PRIVATE);
+        String theme = prefs.getString("theme", "pink_brown");
+        int themeResId;
+        switch (theme) {
+            case "blue_white": themeResId = R.style.Theme_BlueWhite; break;
+            case "green_white": themeResId = R.style.Theme_GreenWhite; break;
+            default: themeResId = R.style.Theme_PinkBrown; break;
+        }
+
+        // Wrap Context עם Theme
+        LayoutInflater themedInflater = inflater.cloneInContext(
+                new android.view.ContextThemeWrapper(getContext(), themeResId)
+        );
+
+        // Inflate עם ה-Context החדש
+        View view = themedInflater.inflate(R.layout.fragment_category_tasks, container, false);
 
         recyclerView = view.findViewById(R.id.recyclerViewCategoryTasks);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -134,6 +151,7 @@ public class CategoryTasksFragment extends Fragment {
 
         return view;
     }
+
 
     private void sortTasks(int sortOption) {
         switch (sortOption) {

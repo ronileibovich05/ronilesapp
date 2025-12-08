@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.SharedPreferences;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,8 +19,15 @@ public class ProfileActivity extends AppCompatActivity {
     private ImageView profileImageView;
     private TextView tvFirstName, tvLastName, tvEmail;
 
+    private static final String PREFS_NAME = "AppSettingsPrefs";
+    private static final String KEY_THEME = "theme";
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+
+        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
+        applySelectedTheme();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
 
@@ -29,6 +37,23 @@ public class ProfileActivity extends AppCompatActivity {
         tvEmail = findViewById(R.id.tvEmail);
 
         loadUserProfile();
+    }
+
+    private void applySelectedTheme() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String theme = prefs.getString(KEY_THEME, "pink_brown");
+
+        switch (theme) {
+            case "pink_brown":
+                setTheme(R.style.Theme_PinkBrown);
+                break;
+            case "blue_white":
+                setTheme(R.style.Theme_BlueWhite);
+                break;
+            case "green_white":
+                setTheme(R.style.Theme_GreenWhite);
+                break;
+        }
     }
 
     private void loadUserProfile() {
@@ -50,10 +75,9 @@ public class ProfileActivity extends AppCompatActivity {
                     if (profileImageUrl != null) {
                         Glide.with(this)
                                 .load(Uri.parse(profileImageUrl))
-                                .placeholder(R.drawable.ic_default_profile) // תמונה ברירת מחדל
+                                .placeholder(R.drawable.ic_default_profile)
                                 .into(profileImageView);
                     } else {
-                        // אם אין תמונה, נציג את ברירת המחדל
                         profileImageView.setImageResource(R.drawable.ic_default_profile);
                     }
                 } else {

@@ -1,6 +1,7 @@
 package com.example.ronilesapp;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Toast;
 import android.app.AlertDialog;
@@ -37,8 +38,15 @@ public class TasksActivity extends AppCompatActivity {
     private List<Fragment> fragments = new ArrayList<>();
     private CategoryPagerAdapter pagerAdapter;
 
+    private static final String PREFS_NAME = "AppSettingsPrefs";
+    private static final String KEY_THEME = "theme";
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+
+        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
+        applySelectedTheme();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tasks);
 
@@ -50,20 +58,20 @@ public class TasksActivity extends AppCompatActivity {
         // 🔹 סרגל כלים תחתון
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigation);
         bottomNavigationView.setOnItemSelectedListener(item -> {
-            switch (item.getItemId()) {
-                case R.id.nav_profile:
-                    Intent profileIntent = new Intent(TasksActivity.this, ProfileActivity.class);
-                    startActivity(profileIntent);
-                    return true;
-                case R.id.nav_settings:
-                    Intent settingsIntent = new Intent(TasksActivity.this, SettingsActivity.class);
-                    startActivity(settingsIntent);
-                    return true;
-                case R.id.nav_home:
-                    // כבר ב־TasksActivity – אין פעולה
-                    return true;
-                default:
-                    return false;
+            int id = item.getItemId();
+
+            if (id == R.id.nav_profile) {
+                Intent profileIntent = new Intent(TasksActivity.this, ProfileActivity.class);
+                startActivity(profileIntent);
+                return true;
+            } else if (id == R.id.nav_settings) {
+                Intent settingsIntent = new Intent(TasksActivity.this, SettingsActivity.class);
+                startActivity(settingsIntent);
+                return true;
+            } else if (id == R.id.nav_home) {
+                return true;
+            } else {
+                return false;
             }
         });
 
@@ -72,7 +80,7 @@ public class TasksActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        loadCategoriesAndTasks(); // טוען מחדש את המשימות
+                        loadCategoriesAndTasks();
                     }
                 }
         );
@@ -84,14 +92,27 @@ public class TasksActivity extends AppCompatActivity {
 
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
 
-        // טוענים קטגוריות ומשימות
         loadCategoriesAndTasks();
-
-        // 🔹 מתקן את החודש והשעה של כל המשימות הישנות (רק פעם אחת)
         updateTasksMonthAndTime();
     }
 
-    // טוען קטגוריות ויוצר טאבים ופרגמנטים
+    private void applySelectedTheme() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String theme = prefs.getString(KEY_THEME, "pink_brown");
+
+        switch (theme) {
+            case "pink_brown":
+                setTheme(R.style.Theme_PinkBrown);
+                break;
+            case "blue_white":
+                setTheme(R.style.Theme_BlueWhite);
+                break;
+            case "green_white":
+                setTheme(R.style.Theme_GreenWhite);
+                break;
+        }
+    }
+
     void loadCategoriesAndTasks() {
         FBRef.getUserCategoriesRef().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -103,7 +124,6 @@ public class TasksActivity extends AppCompatActivity {
                     if (categoryName != null) categoryList.add(categoryName);
                 }
 
-                // הוספת טאב "כל המשימות" ראשון
                 categoryList.add(0, "כל המשימות");
 
                 for (String cat : categoryList) {
@@ -123,7 +143,6 @@ public class TasksActivity extends AppCompatActivity {
         });
     }
 
-    // דיאלוג להוספת קטגוריה
     private void showAddCategoryDialog() {
         EditText input = new EditText(this);
         input.setHint("שם קטגוריה");
@@ -154,7 +173,6 @@ public class TasksActivity extends AppCompatActivity {
                 );
     }
 
-    // 🔹 פונקציה לתיקון החודש והשעה של משימות קיימות
     private void updateTasksMonthAndTime() {
         FBRef.getUserTasksRef().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -187,7 +205,6 @@ public class TasksActivity extends AppCompatActivity {
         });
     }
 
-    // 🔹 Adapter לפרגמנטים של קטגוריות
     private static class CategoryPagerAdapter extends FragmentStateAdapter {
         private final List<Fragment> fragments;
 

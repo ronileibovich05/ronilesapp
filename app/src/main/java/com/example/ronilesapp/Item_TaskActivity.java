@@ -1,6 +1,7 @@
 package com.example.ronilesapp;
 
 import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -31,8 +32,15 @@ public class Item_TaskActivity extends AppCompatActivity {
     private ArrayAdapter<String> categoryAdapter;
     private List<String> categoryList = new ArrayList<>();
 
+    private static final String PREFS_NAME = "AppSettingsPrefs";
+    private static final String KEY_THEME = "theme";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
+        applySelectedTheme();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_task);
 
@@ -64,6 +72,23 @@ public class Item_TaskActivity extends AppCompatActivity {
                 finish();
             }
         });
+    }
+
+    private void applySelectedTheme() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String theme = prefs.getString(KEY_THEME, "pink_brown");
+
+        switch (theme) {
+            case "pink_brown":
+                setTheme(R.style.Theme_PinkBrown);
+                break;
+            case "blue_white":
+                setTheme(R.style.Theme_BlueWhite);
+                break;
+            case "green_white":
+                setTheme(R.style.Theme_GreenWhite);
+                break;
+        }
     }
 
     private void loadCategories() {
@@ -115,7 +140,7 @@ public class Item_TaskActivity extends AppCompatActivity {
 
         int day = datePicker.getDayOfMonth();
         int month = datePicker.getMonth() + 1; // DatePicker מתחיל מ-0
-        int year = datePicker.getYear();       // ✅ השנה מה-DatePicker
+        int year = datePicker.getYear();
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
 
@@ -128,21 +153,18 @@ public class Item_TaskActivity extends AppCompatActivity {
             return;
         }
 
-        // יוצרים את המשימה
         Task newTask = new Task(title, description, day, month, year, hour, minute, category, false);
 
-        // שמירה ב-Firebase כולל שנה
         FBRef.getUserTasksRef().document(title).set(newTask)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(Item_TaskActivity.this, "משימה נוספה!", Toast.LENGTH_SHORT).show();
 
-                    // החזרת תוצאה ל-Activity הקודם אם צריך
                     Intent resultIntent = new Intent();
                     resultIntent.putExtra("newTaskTitle", title);
                     resultIntent.putExtra("newTaskDescription", description);
                     resultIntent.putExtra("newTaskDay", day);
                     resultIntent.putExtra("newTaskMonth", month);
-                    resultIntent.putExtra("newTaskYear", year); // ✅ שנה
+                    resultIntent.putExtra("newTaskYear", year);
                     resultIntent.putExtra("newTaskHour", hour);
                     resultIntent.putExtra("newTaskMinute", minute);
                     resultIntent.putExtra("newTaskCategory", category);

@@ -2,6 +2,7 @@ package com.example.ronilesapp;
 
 import static com.example.ronilesapp.FBRef.*;
 
+import android.content.SharedPreferences;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -21,8 +22,15 @@ import com.google.firebase.auth.FirebaseAuth;
 
 public class LoginActivity extends AppCompatActivity {
 
+    private static final String PREFS_NAME = "AppSettingsPrefs";
+    private static final String KEY_THEME = "theme";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
+        applySelectedTheme();
+
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
@@ -36,8 +44,23 @@ public class LoginActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
 
-        // לא עושים בדיקה של משתמש מחובר – תמיד מראים את מסך הלוגין
+    private void applySelectedTheme() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String theme = prefs.getString(KEY_THEME, "pink_brown");
+
+        switch (theme) {
+            case "pink_brown":
+                setTheme(R.style.Theme_PinkBrown);
+                break;
+            case "blue_white":
+                setTheme(R.style.Theme_BlueWhite);
+                break;
+            case "green_white":
+                setTheme(R.style.Theme_GreenWhite);
+                break;
+        }
     }
 
     // פונקציה ללחיצה על כפתור Login
@@ -58,7 +81,6 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onComplete(Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            // התחברות הצליחה → שולחים ל-TasksActivity
                             Intent intent = new Intent(LoginActivity.this, TasksActivity.class);
                             startActivity(intent);
                             finish();

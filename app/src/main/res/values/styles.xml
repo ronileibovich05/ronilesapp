@@ -1,0 +1,31 @@
+<resources>
+
+    <!-- Base application theme -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Default colors, משתנים לפי Theme -->
+        <item name="colorPrimary">@color/pink</item>
+        <item name="colorPrimaryVariant">@color/brown</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/pink</item>
+        <item name="colorSecondaryVariant">@color/brown</item>
+    </style>
+
+    <style name="Theme.PinkBrown" parent="AppTheme">
+        <item name="colorPrimary">@color/pink</item>
+        <item name="colorPrimaryVariant">@color/brown</item>
+        <item name="colorSecondary">@color/pink</item>
+    </style>
+
+    <style name="Theme.BlueWhite" parent="AppTheme">
+        <item name="colorPrimary">@color/blue</item>
+        <item name="colorPrimaryVariant">@color/white</item>
+        <item name="colorSecondary">@color/blue</item>
+    </style>
+
+    <style name="Theme.GreenWhite" parent="AppTheme">
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorPrimaryVariant">@color/white</item>
+        <item name="colorSecondary">@color/green</item>
+    </style>
+
+</resources>
