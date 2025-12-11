@@ -36,7 +36,9 @@ android {
 dependencies {
     // Firebase BOM – קובע גרסאות תואמות לכל המודולים
     implementation(platform("com.google.firebase:firebase-bom:32.2.2"))
-
+// זה רק פותר את ההתנגשות הפנימית, זה לא משפיע על הקוד שלך
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
     // Firebase
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
@@ -48,6 +50,8 @@ dependencies {
     implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.activity:activity:1.8.0")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
 
     // Glide – ספרייה לטעינת תמונות
     implementation("com.github.bumptech.glide:glide:4.16.0")

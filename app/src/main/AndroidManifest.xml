@@ -38,16 +38,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- מסך הרשמה -->
+
         <activity android:name=".RegisterActivity" android:exported="false" />
-        <!-- מסך ברוכים הבאים -->
         <activity android:name=".WelcomeActivity" android:exported="false" />
-        <!-- מסך משתמש פרטי -->
         <activity android:name=".userActivity" android:exported="false" />
-        <!-- מסך משימות -->
         <activity android:name=".TasksActivity" android:exported="false" />
-        <!-- מסך יצירת משימה חדשה -->
         <activity android:name=".Item_TaskActivity" android:exported="false" />
+
+        <!-- הוספת ה-Activities החסרים -->
+        <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
 
     </application>
 

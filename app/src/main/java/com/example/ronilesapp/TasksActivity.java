@@ -69,11 +69,14 @@ public class TasksActivity extends AppCompatActivity {
                 startActivity(settingsIntent);
                 return true;
             } else if (id == R.id.nav_home) {
+                // משתמש כבר במסך הראשי, אפשר להראות Toast או לא לעשות כלום
+                Toast.makeText(TasksActivity.this, "אתה כבר במסך הראשי", Toast.LENGTH_SHORT).show();
                 return true;
             } else {
                 return false;
             }
         });
+
 
         // פתיחת מסך הוספת משימה
         addTaskLauncher = registerForActivityResult(
