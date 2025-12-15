@@ -25,7 +25,8 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TasksActivity extends AppCompatActivity {
+public class TasksActivity extends BaseActivity {
+
 
     private TabLayout tabLayoutCategories;
     private ViewPager2 viewPagerTasks;
@@ -38,16 +39,30 @@ public class TasksActivity extends AppCompatActivity {
     private List<Fragment> fragments = new ArrayList<>();
     private CategoryPagerAdapter pagerAdapter;
 
-    private static final String PREFS_NAME = "AppSettingsPrefs";
-    private static final String KEY_THEME = "theme";
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
-        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
-        applySelectedTheme();
+
 
         super.onCreate(savedInstanceState);
+        // 🔹 טעינת Theme מה-Settings
+        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+        String themeName = prefs.getString("theme", "Theme.PinkBrown"); // ברירת מחדל
+
+        switch(themeName){
+            case "Theme.PinkBrown":
+                setTheme(R.style.Theme_PinkBrown);
+                break;
+            case "Theme.BlueWhite":
+                setTheme(R.style.Theme_BlueWhite);
+                break;
+            case "Theme.GreenWhite":
+                setTheme(R.style.Theme_GreenWhite);
+                break;
+        }
+
         setContentView(R.layout.activity_tasks);
 
         tabLayoutCategories = findViewById(R.id.tabLayoutCategories);
@@ -99,22 +114,7 @@ public class TasksActivity extends AppCompatActivity {
         updateTasksMonthAndTime();
     }
 
-    private void applySelectedTheme() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String theme = prefs.getString(KEY_THEME, "pink_brown");
 
-        switch (theme) {
-            case "pink_brown":
-                setTheme(R.style.Theme_PinkBrown);
-                break;
-            case "blue_white":
-                setTheme(R.style.Theme_BlueWhite);
-                break;
-            case "green_white":
-                setTheme(R.style.Theme_GreenWhite);
-                break;
-        }
-    }
 
     void loadCategoriesAndTasks() {
         FBRef.getUserCategoriesRef().get().addOnCompleteListener(task -> {

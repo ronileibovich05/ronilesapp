@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- צבעים בסיסיים -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- צבעי Themes -->
     <color name="pink">#DC98AD</color>
     <color name="brown">#997D72</color>
     <color name="blue">#96C3E7</color>
     <color name="green">#B9EBBB</color>
+
+    <!-- צבעי רקע וכפתורים לכל Theme -->
+    <color name="pink_background">#FFF0F2</color>
+    <color name="pink_primary">#DC98AD</color>
+
+    <color name="blue_background">#E6F0FA</color>
+    <color name="blue_primary">#96C3E7</color>
+
+    <color name="green_background">#E8F8E7</color>
+    <color name="green_primary">#B9EBBB</color>
 </resources>

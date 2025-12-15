@@ -1,31 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Base application theme -->
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Default colors, משתנים לפי Theme -->
+        <!-- צבעים כלליים -->
         <item name="colorPrimary">@color/pink</item>
         <item name="colorPrimaryVariant">@color/brown</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorSecondary">@color/pink</item>
         <item name="colorSecondaryVariant">@color/brown</item>
+
+        <!-- רקעים -->
+        <item name="colorBackground">@color/pink_background</item>
+
+        <!-- כפתורים -->
+        <item name="colorButton">@color/pink</item>
+
+        <!-- טקסטים -->
+        <item name="colorText">@color/black</item>
+
+
+        <!-- TabLayout -->
+        <item name="tabTextColor">@color/black</item>
+        <item name="tabSelectedTextColor">@color/pink</item>
+
     </style>
 
+    <!-- Theme PinkBrown -->
     <style name="Theme.PinkBrown" parent="AppTheme">
         <item name="colorPrimary">@color/pink</item>
         <item name="colorPrimaryVariant">@color/brown</item>
         <item name="colorSecondary">@color/pink</item>
+        <item name="colorBackground">@color/pink_background</item>
+        <item name="colorButton">@color/brown</item>
+        <item name="colorText">@color/black</item>
     </style>
 
+    <!-- Theme BlueWhite -->
     <style name="Theme.BlueWhite" parent="AppTheme">
         <item name="colorPrimary">@color/blue</item>
         <item name="colorPrimaryVariant">@color/white</item>
         <item name="colorSecondary">@color/blue</item>
+        <item name="colorBackground">@color/blue_background</item>
+        <item name="colorButton">@color/blue</item>
+        <item name="colorText">@color/black</item>
     </style>
 
+    <!-- Theme GreenWhite -->
     <style name="Theme.GreenWhite" parent="AppTheme">
         <item name="colorPrimary">@color/green</item>
         <item name="colorPrimaryVariant">@color/white</item>
         <item name="colorSecondary">@color/green</item>
+        <item name="colorBackground">@color/green_background</item>
+        <item name="colorButton">@color/green</item>
+        <item name="colorText">@color/black</item>
     </style>
 
 </resources>

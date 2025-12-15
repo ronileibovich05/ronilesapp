@@ -1,33 +1,27 @@
 package com.example.ronilesapp;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.SharedPreferences;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-public class ProfileActivity extends AppCompatActivity {
+public class ProfileActivity extends BaseActivity {
 
     private ImageView profileImageView;
     private TextView tvFirstName, tvLastName, tvEmail;
-
-    private static final String PREFS_NAME = "AppSettingsPrefs";
-    private static final String KEY_THEME = "theme";
+    private BottomNavigationView bottomNavigation;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-
-        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
-        applySelectedTheme();
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
 
@@ -35,25 +29,30 @@ public class ProfileActivity extends AppCompatActivity {
         tvFirstName = findViewById(R.id.tvFirstName);
         tvLastName = findViewById(R.id.tvLastName);
         tvEmail = findViewById(R.id.tvEmail);
+        bottomNavigation = findViewById(R.id.bottomNavigation);
+
+        // בוחר את הפריט הנוכחי
+        bottomNavigation.setSelectedItemId(R.id.nav_profile);
+
+        // מאזין ללחיצות בפריטים
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {  // TasksActivity
+                startActivity(new Intent(ProfileActivity.this, TasksActivity.class));
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (id == R.id.nav_settings) {  // SettingsActivity
+                startActivity(new Intent(ProfileActivity.this, SettingsActivity.class));
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (id == R.id.nav_profile) {  // Activity הנוכחי
+                return true;
+            }
+            return false;
+        });
 
         loadUserProfile();
-    }
-
-    private void applySelectedTheme() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String theme = prefs.getString(KEY_THEME, "pink_brown");
-
-        switch (theme) {
-            case "pink_brown":
-                setTheme(R.style.Theme_PinkBrown);
-                break;
-            case "blue_white":
-                setTheme(R.style.Theme_BlueWhite);
-                break;
-            case "green_white":
-                setTheme(R.style.Theme_GreenWhite);
-                break;
-        }
     }
 
     private void loadUserProfile() {

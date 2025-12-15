@@ -31,10 +31,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RegisterActivity extends AppCompatActivity {
+public class RegisterActivity extends BaseActivity {
 
-    private static final String PREFS_NAME = "AppSettingsPrefs";
-    private static final String KEY_THEME = "theme";
+
 
     private EditText firstNameEditText, lastNameEditText, emailEditText, passwordEditText;
     private CheckBox notificationsCheckBox;
@@ -50,8 +49,7 @@ public class RegisterActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
-        applySelectedTheme();
+
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
@@ -66,22 +64,7 @@ public class RegisterActivity extends AppCompatActivity {
         setupImagePickers();
     }
 
-    private void applySelectedTheme() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String theme = prefs.getString(KEY_THEME, "pink_brown");
 
-        switch (theme) {
-            case "pink_brown":
-                setTheme(R.style.Theme_PinkBrown);
-                break;
-            case "blue_white":
-                setTheme(R.style.Theme_BlueWhite);
-                break;
-            case "green_white":
-                setTheme(R.style.Theme_GreenWhite);
-                break;
-        }
-    }
 
 
     private void setupImagePickers() {

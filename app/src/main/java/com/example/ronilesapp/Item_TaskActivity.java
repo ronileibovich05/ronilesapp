@@ -19,8 +19,8 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+public class Item_TaskActivity extends BaseActivity {
 
-public class Item_TaskActivity extends AppCompatActivity {
 
     private EditText editTaskTitle, editTaskDescription;
     private DatePicker datePicker;
@@ -32,14 +32,11 @@ public class Item_TaskActivity extends AppCompatActivity {
     private ArrayAdapter<String> categoryAdapter;
     private List<String> categoryList = new ArrayList<>();
 
-    private static final String PREFS_NAME = "AppSettingsPrefs";
-    private static final String KEY_THEME = "theme";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // 🔹 מיישם את ה-Theme שנבחר לפני setContentView
-        applySelectedTheme();
+
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_task);
@@ -74,22 +71,6 @@ public class Item_TaskActivity extends AppCompatActivity {
         });
     }
 
-    private void applySelectedTheme() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String theme = prefs.getString(KEY_THEME, "pink_brown");
-
-        switch (theme) {
-            case "pink_brown":
-                setTheme(R.style.Theme_PinkBrown);
-                break;
-            case "blue_white":
-                setTheme(R.style.Theme_BlueWhite);
-                break;
-            case "green_white":
-                setTheme(R.style.Theme_GreenWhite);
-                break;
-        }
-    }
 
     private void loadCategories() {
         categoryList.clear();

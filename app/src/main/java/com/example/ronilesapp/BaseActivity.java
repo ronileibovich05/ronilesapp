@@ -3,20 +3,43 @@ package com.example.ronilesapp;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class BaseActivity extends AppCompatActivity {
 
-    private static final String PREFS_NAME = "AppSettingsPrefs";
-    private static final String KEY_THEME = "theme";
+    protected static final String PREFS_NAME = "AppSettingsPrefs";
+    protected static final String KEY_THEME = "theme";
+
+    // 🔹 זוכר איזה theme היה בפעם האחרונה
+    private String lastTheme;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        applySelectedTheme(); // מיישם את הצבע לפני שנטען ה-Layout
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        applySelectedTheme();
         super.onCreate(savedInstanceState);
+
+        // 🔹 שמירת ה-theme הנוכחי
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        lastTheme = prefs.getString(KEY_THEME, "pink_brown");
     }
 
-    private void applySelectedTheme() {
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String currentTheme = prefs.getString(KEY_THEME, "pink_brown");
+
+        // 🔹 אם ה-theme השתנה → רענון המסך
+        if (lastTheme != null && !lastTheme.equals(currentTheme)) {
+            recreate();
+        }
+
+        lastTheme = currentTheme;
+    }
+
+    protected void applySelectedTheme() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String theme = prefs.getString(KEY_THEME, "pink_brown");
 
