@@ -60,6 +60,14 @@
                 android:textSize="16sp"
                 android:layout_marginTop="8dp"
                 android:textColor="#555555"/>
+
+            <!-- כפתור Edit Profile -->
+            <Button
+                android:id="@+id/btnEditProfile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Edit Profile"
+                android:layout_marginTop="24dp"/>
         </LinearLayout>
     </ScrollView>
 
@@ -72,5 +80,4 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

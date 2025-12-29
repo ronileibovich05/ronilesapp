@@ -19,10 +19,10 @@ public class BaseActivity extends AppCompatActivity {
         applySelectedTheme();
         super.onCreate(savedInstanceState);
 
-        // 🔹 שמירת ה-theme הנוכחי
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         lastTheme = prefs.getString(KEY_THEME, "pink_brown");
     }
+
 
     @Override
     protected void onResume() {
@@ -31,13 +31,15 @@ public class BaseActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String currentTheme = prefs.getString(KEY_THEME, "pink_brown");
 
-        // 🔹 אם ה-theme השתנה → רענון המסך
         if (lastTheme != null && !lastTheme.equals(currentTheme)) {
+            lastTheme = currentTheme; // חשוב לעדכן לפני
             recreate();
+            return;
         }
 
         lastTheme = currentTheme;
     }
+
 
     protected void applySelectedTheme() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
