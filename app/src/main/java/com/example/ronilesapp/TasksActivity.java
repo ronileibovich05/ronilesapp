@@ -46,7 +46,6 @@ public class TasksActivity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
-        // הגדרת Theme ראשונית
         applyInitialTheme(sharedPreferences.getString("theme", "Theme.PinkBrown"));
 
         super.onCreate(savedInstanceState);
@@ -58,6 +57,10 @@ public class TasksActivity extends BaseActivity {
         btnAddCategory = findViewById(R.id.btnAddCategoryTasks);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigation);
+
+        // ✅ חדש — סימון שהמסך הנוכחי הוא HOME
+        bottomNavigationView.setSelectedItemId(R.id.nav_home);
+
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_profile) {
@@ -67,12 +70,14 @@ public class TasksActivity extends BaseActivity {
                 startActivity(new Intent(TasksActivity.this, SettingsActivity.class));
                 return true;
             } else if (id == R.id.nav_home) {
-                Toast.makeText(TasksActivity.this, "אתה כבר במסך הראשי", Toast.LENGTH_SHORT).show();
+                // כבר כאן — לא צריך לעשות כלום
                 return true;
             } else {
                 return false;
             }
         });
+
+
 
         addTaskLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),

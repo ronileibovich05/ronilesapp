@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -25,6 +26,7 @@ public class ProfileActivity extends BaseActivity {
     private TextView tvFirstName, tvLastName, tvEmail;
     private BottomNavigationView bottomNavigation;
     private Button btnEditProfile;
+    private ScrollView scrollProfile; // ScrollView עבור הרקע
 
     private SharedPreferences sharedPreferences;
     private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
@@ -32,7 +34,6 @@ public class ProfileActivity extends BaseActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
-        // SharedPreferences
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
 
         super.onCreate(savedInstanceState);
@@ -44,6 +45,7 @@ public class ProfileActivity extends BaseActivity {
         tvEmail = findViewById(R.id.tvEmail);
         bottomNavigation = findViewById(R.id.bottomNavigation);
         btnEditProfile = findViewById(R.id.btnEditProfile);
+        scrollProfile = findViewById(R.id.scrollProfile);
 
         // סרגל תחתון
         bottomNavigation.setSelectedItemId(R.id.nav_profile);
@@ -114,10 +116,15 @@ public class ProfileActivity extends BaseActivity {
                 break;
         }
 
-        findViewById(R.id.scrollProfile).setBackgroundColor(backgroundColor);
+        // רקע כולל
+        scrollProfile.setBackgroundColor(backgroundColor);
+
+        // צבעי טקסט
         tvFirstName.setTextColor(textColor);
         tvLastName.setTextColor(textColor);
         tvEmail.setTextColor(textColor);
+
+        // צבע כפתור
         btnEditProfile.setBackgroundColor(buttonColor);
     }
 
@@ -137,7 +144,7 @@ public class ProfileActivity extends BaseActivity {
                     tvLastName.setText(lastName != null ? lastName : "");
                     tvEmail.setText(email != null ? email : "");
 
-                    if (profileImageUrl != null) {
+                    if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
                         Glide.with(this)
                                 .load(Uri.parse(profileImageUrl))
                                 .placeholder(R.drawable.ic_default_profile)
@@ -172,10 +179,10 @@ public class ProfileActivity extends BaseActivity {
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 10);
         layout.addView(inputFirstName);
         layout.addView(inputLastName);
         layout.addView(inputProfileUrl);
-        layout.setPadding(50, 40, 50, 10);
 
         builder.setView(layout);
 
@@ -183,7 +190,6 @@ public class ProfileActivity extends BaseActivity {
             String newFirstName = inputFirstName.getText().toString().trim();
             String newLastName = inputLastName.getText().toString().trim();
             String newProfileUrl = inputProfileUrl.getText().toString().trim();
-
             updateUserProfile(newFirstName, newLastName, newProfileUrl);
         });
 
