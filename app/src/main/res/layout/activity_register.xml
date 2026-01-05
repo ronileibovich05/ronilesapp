@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#FDEEF3">
 
     <LinearLayout
         android:id="@+id/main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="90dp"
-        android:background="#EBC3D2"
+        android:padding="24dp"
         android:gravity="center_horizontal">
 
         <!-- תמונת פרופיל -->
@@ -22,34 +22,34 @@
             android:background="@drawable/circle_background"
             android:layout_marginBottom="16dp" />
 
-        <!-- שורה עם שני כפתורים: Choose Image ו-Take Photo -->
+        <!-- כפתורים לבחור או לצלם תמונה -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="16dp"
-            android:gravity="center">
+            android:gravity="center"
+            android:layout_marginBottom="16dp">
 
             <Button
                 android:id="@+id/button_choose_image"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Choose Image"
-                android:textSize="13dp"
-                android:textColor="#EBC3D2"
-                android:backgroundTint="#7257300E"
                 android:onClick="chooseImage"
-                android:layout_marginEnd="8dp"/>
+                android:textColor="#FFFFFF"
+                android:background="@drawable/rounded_button"
+                android:layout_marginEnd="8dp"
+                android:padding="12dp"/>
 
             <Button
                 android:id="@+id/button_take_photo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#EBC3D2"
                 android:text="Take Photo"
-                android:textSize="13dp"
-                android:backgroundTint="#7257300E"
-                android:onClick="takePhoto"/>
+                android:onClick="takePhoto"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/rounded_button"
+                android:padding="12dp"/>
         </LinearLayout>
 
         <!-- שדות טקסט -->
@@ -58,7 +58,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="First Name"
-            android:inputType="textPersonName"
+            android:background="@drawable/rounded_edittext"
+            android:padding="16dp"
             android:layout_marginBottom="8dp"/>
 
         <EditText
@@ -66,7 +67,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Last Name"
-            android:inputType="textPersonName"
+            android:background="@drawable/rounded_edittext"
+            android:padding="16dp"
             android:layout_marginBottom="8dp"/>
 
         <EditText
@@ -74,7 +76,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Email"
-            android:inputType="textEmailAddress"
+            android:background="@drawable/rounded_edittext"
+            android:padding="16dp"
             android:layout_marginBottom="8dp"/>
 
         <EditText
@@ -82,7 +85,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Password"
-            android:inputType="textPassword"
+            android:background="@drawable/rounded_edittext"
+            android:padding="16dp"
             android:layout_marginBottom="8dp"/>
 
         <!-- Checkbox -->
@@ -91,27 +95,31 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Allow Notifications"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="16dp"
+            android:textColor="#6B3E5B"/>
 
         <!-- כפתור הרשמה -->
         <Button
             android:id="@+id/button_register"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#EBC3D2"
             android:text="Register"
-            android:textSize="23dp"
-            android:backgroundTint="#7257300E"
-            android:onClick="registerUser"/>
+            android:onClick="registerUser"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/rounded_button"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- כפתור חזרה ל-Login -->
         <Button
             android:id="@+id/btnBackToLogin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Back to LogIn"
-            android:backgroundTint="#7257300E"
-            android:textColor="#EBC3D2"
-            android:layout_marginTop="16dp"
-            android:onClick="goToLogin" />
+            android:text="Back to Login"
+            android:onClick="goToLogin"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/rounded_button"
+            android:padding="16dp"/>
 
     </LinearLayout>
 </ScrollView>

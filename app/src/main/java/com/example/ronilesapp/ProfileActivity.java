@@ -26,18 +26,17 @@ public class ProfileActivity extends BaseActivity {
     private TextView tvFirstName, tvLastName, tvEmail;
     private BottomNavigationView bottomNavigation;
     private Button btnEditProfile;
-    private ScrollView scrollProfile; // ScrollView עבור הרקע
+    private ScrollView scrollProfile;
 
     private SharedPreferences sharedPreferences;
     private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-
-        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+
+        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
 
         profileImageView = findViewById(R.id.imageviewProfile);
         tvFirstName = findViewById(R.id.tvFirstName);
@@ -47,7 +46,6 @@ public class ProfileActivity extends BaseActivity {
         btnEditProfile = findViewById(R.id.btnEditProfile);
         scrollProfile = findViewById(R.id.scrollProfile);
 
-        // סרגל תחתון
         bottomNavigation.setSelectedItemId(R.id.nav_profile);
         bottomNavigation.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -68,10 +66,8 @@ public class ProfileActivity extends BaseActivity {
         loadUserProfile();
         btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
 
-        // החלת צבעים בפעם הראשונה
         applyThemeColors();
 
-        // מאזין לשינוי Theme בזמן אמת
         themeListener = (prefs, key) -> {
             if ("theme".equals(key)) {
                 applyThemeColors();
@@ -93,57 +89,53 @@ public class ProfileActivity extends BaseActivity {
 
         int backgroundColor, textColor, buttonColor;
 
-        switch(theme) {
+        switch (theme) {
             case "pink_brown":
                 backgroundColor = getResources().getColor(R.color.pink_background);
-                textColor = getResources().getColor(R.color.pink);
+                textColor = getResources().getColor(R.color.brown);
                 buttonColor = getResources().getColor(R.color.pink_primary);
                 break;
             case "blue_white":
                 backgroundColor = getResources().getColor(R.color.blue_background);
-                textColor = getResources().getColor(R.color.blue);
+                textColor = getResources().getColor(R.color.black);
                 buttonColor = getResources().getColor(R.color.blue_primary);
                 break;
             case "green_white":
                 backgroundColor = getResources().getColor(R.color.green_background);
-                textColor = getResources().getColor(R.color.green);
+                textColor = getResources().getColor(R.color.black);
                 buttonColor = getResources().getColor(R.color.green_primary);
                 break;
             default:
                 backgroundColor = getResources().getColor(R.color.pink_background);
-                textColor = getResources().getColor(R.color.pink);
+                textColor = getResources().getColor(R.color.brown);
                 buttonColor = getResources().getColor(R.color.pink_primary);
-                break;
         }
 
-        // רקע כולל
         scrollProfile.setBackgroundColor(backgroundColor);
-
-        // צבעי טקסט
         tvFirstName.setTextColor(textColor);
         tvLastName.setTextColor(textColor);
         tvEmail.setTextColor(textColor);
-
-        // צבע כפתור
         btnEditProfile.setBackgroundColor(buttonColor);
     }
 
+
     private void loadUserProfile() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Toast.makeText(this, "אין משתמש מחובר", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         FBRef.refUsers.document(uid).get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 DocumentSnapshot doc = task.getResult();
                 if (doc != null && doc.exists()) {
-                    String firstName = doc.getString("firstName");
-                    String lastName = doc.getString("lastName");
-                    String email = doc.getString("email");
+                    tvFirstName.setText(doc.getString("firstName"));
+                    tvLastName.setText(doc.getString("lastName"));
+                    tvEmail.setText(doc.getString("email"));
+
                     String profileImageUrl = doc.getString("profileImageUrl");
-
-                    tvFirstName.setText(firstName != null ? firstName : "");
-                    tvLastName.setText(lastName != null ? lastName : "");
-                    tvEmail.setText(email != null ? email : "");
-
                     if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
                         Glide.with(this)
                                 .load(Uri.parse(profileImageUrl))
@@ -175,7 +167,6 @@ public class ProfileActivity extends BaseActivity {
 
         EditText inputProfileUrl = new EditText(this);
         inputProfileUrl.setHint("כתובת URL תמונת פרופיל");
-        inputProfileUrl.setText("");
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -186,12 +177,12 @@ public class ProfileActivity extends BaseActivity {
 
         builder.setView(layout);
 
-        builder.setPositiveButton("שמור", (dialog, which) -> {
-            String newFirstName = inputFirstName.getText().toString().trim();
-            String newLastName = inputLastName.getText().toString().trim();
-            String newProfileUrl = inputProfileUrl.getText().toString().trim();
-            updateUserProfile(newFirstName, newLastName, newProfileUrl);
-        });
+        builder.setPositiveButton("שמור", (dialog, which) ->
+                updateUserProfile(
+                        inputFirstName.getText().toString().trim(),
+                        inputLastName.getText().toString().trim(),
+                        inputProfileUrl.getText().toString().trim()
+                ));
 
         builder.setNegativeButton("ביטול", null);
         builder.show();
@@ -203,7 +194,7 @@ public class ProfileActivity extends BaseActivity {
         FBRef.refUsers.document(uid)
                 .update("firstName", firstName, "lastName", lastName, "profileImageUrl", profileUrl)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(ProfileActivity.this, "פרטי המשתמש עודכנו בהצלחה", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "פרטי המשתמש עודכנו בהצלחה", Toast.LENGTH_SHORT).show();
                     tvFirstName.setText(firstName);
                     tvLastName.setText(lastName);
                     if (!profileUrl.isEmpty()) {
@@ -213,6 +204,7 @@ public class ProfileActivity extends BaseActivity {
                                 .into(profileImageView);
                     }
                 })
-                .addOnFailureListener(e -> Toast.makeText(ProfileActivity.this, "שגיאה בעדכון פרטי משתמש", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "שגיאה בעדכון פרטי משתמש", Toast.LENGTH_SHORT).show());
     }
 }

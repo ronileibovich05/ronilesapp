@@ -48,6 +48,7 @@ public class TasksActivity extends BaseActivity {
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
         applyInitialTheme(sharedPreferences.getString("theme", "Theme.PinkBrown"));
 
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tasks);
 
@@ -90,7 +91,7 @@ public class TasksActivity extends BaseActivity {
 
         fabAddTask.setOnClickListener(v -> {
             if (!NetworkUtil.isConnected(this)) {
-                Toast.makeText(this, "אין חיבור לאינטרנט.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "No Internet Connection.", Toast.LENGTH_LONG).show();
                 return;
             }
             startActivity(new Intent(TasksActivity.this, Item_TaskActivity.class));
@@ -123,43 +124,50 @@ public class TasksActivity extends BaseActivity {
 
     private void applyInitialTheme(String themeName) {
         switch (themeName) {
-            case "Theme.PinkBrown":
+            case "pink_brown":
                 setTheme(R.style.Theme_PinkBrown);
                 break;
-            case "Theme.BlueWhite":
+            case "blue_white":
                 setTheme(R.style.Theme_BlueWhite);
                 break;
-            case "Theme.GreenWhite":
+            case "green_white":
                 setTheme(R.style.Theme_GreenWhite);
+                break;
+            default:
+                setTheme(R.style.Theme_PinkBrown);
                 break;
         }
     }
 
-    private void applyThemeColors() {
-        String theme = sharedPreferences.getString("theme", "Theme.PinkBrown");
-        int backgroundColor, fabColor, buttonColor, tabSelectedColor, tabUnselectedColor;
 
-        switch(theme) {
-            case "Theme.PinkBrown":
+    private void applyThemeColors() {
+        String theme = sharedPreferences.getString("theme", "pink_brown");
+        int backgroundColor, fabColor, buttonColor, tabSelectedColor, tabUnselectedColor, textColor;
+
+        switch (theme) {
+            case "pink_brown":
                 backgroundColor = getResources().getColor(R.color.pink_background);
                 fabColor = getResources().getColor(R.color.pink_primary);
                 buttonColor = getResources().getColor(R.color.pink_primary);
                 tabSelectedColor = getResources().getColor(R.color.pink);
                 tabUnselectedColor = getResources().getColor(R.color.brown);
+                textColor = getResources().getColor(R.color.brown);
                 break;
-            case "Theme.BlueWhite":
+            case "blue_white":
                 backgroundColor = getResources().getColor(R.color.blue_background);
                 fabColor = getResources().getColor(R.color.blue_primary);
                 buttonColor = getResources().getColor(R.color.blue_primary);
                 tabSelectedColor = getResources().getColor(R.color.blue);
-                tabUnselectedColor = getResources().getColor(R.color.white);
+                tabUnselectedColor = getResources().getColor(R.color.black);
+                textColor = getResources().getColor(R.color.black);
                 break;
-            case "Theme.GreenWhite":
+            case "green_white":
                 backgroundColor = getResources().getColor(R.color.green_background);
                 fabColor = getResources().getColor(R.color.green_primary);
                 buttonColor = getResources().getColor(R.color.green_primary);
                 tabSelectedColor = getResources().getColor(R.color.green);
-                tabUnselectedColor = getResources().getColor(R.color.white);
+                tabUnselectedColor = getResources().getColor(R.color.black);
+                textColor = getResources().getColor(R.color.black);
                 break;
             default:
                 backgroundColor = getResources().getColor(R.color.pink_background);
@@ -167,21 +175,28 @@ public class TasksActivity extends BaseActivity {
                 buttonColor = getResources().getColor(R.color.pink_primary);
                 tabSelectedColor = getResources().getColor(R.color.pink);
                 tabUnselectedColor = getResources().getColor(R.color.brown);
+                textColor = getResources().getColor(R.color.brown);
                 break;
         }
 
+        // רקע
         findViewById(R.id.viewPagerTasks).setBackgroundColor(backgroundColor);
+
+        // FAB וכפתור הוספת קטגוריה
         fabAddTask.setBackgroundTintList(android.content.res.ColorStateList.valueOf(fabColor));
         btnAddCategory.setBackgroundColor(buttonColor);
+        btnAddCategory.setTextColor(textColor);
 
-        // צבעי TabLayout
+        // TabLayout
         tabLayoutCategories.setSelectedTabIndicatorColor(tabSelectedColor);
         tabLayoutCategories.setTabTextColors(tabUnselectedColor, tabSelectedColor);
     }
 
+
+
     void loadCategoriesAndTasks() {
         if (!NetworkUtil.isConnected(this)) {
-            Toast.makeText(this, "אין חיבור לאינטרנט.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "No Internet Connection.", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -195,7 +210,8 @@ public class TasksActivity extends BaseActivity {
                     if (categoryName != null) categoryList.add(categoryName);
                 }
 
-                categoryList.add(0, "כל המשימות");
+                categoryList.add(0, "All Tasks");
+
 
                 for (String cat : categoryList) {
                     fragments.add(CategoryTasksFragment.newInstance(cat));
@@ -209,24 +225,24 @@ public class TasksActivity extends BaseActivity {
                 ).attach();
 
             } else {
-                Toast.makeText(this, "שגיאה בטעינת קטגוריות", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Failed Loading Categories", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void showAddCategoryDialog() {
         EditText input = new EditText(this);
-        input.setHint("שם קטגוריה");
+        input.setHint("Category's Name");
 
         new AlertDialog.Builder(this)
-                .setTitle("הוסף קטגוריה")
+                .setTitle("Add Category")
                 .setView(input)
-                .setPositiveButton("שמור", (dialog, which) -> {
+                .setPositiveButton("Save", (dialog, which) -> {
                     String newCategory = input.getText().toString().trim();
                     if (!newCategory.isEmpty()) saveNewCategory(newCategory);
-                    else Toast.makeText(this, "יש להזין שם קטגוריה", Toast.LENGTH_SHORT).show();
+                    else Toast.makeText(this, "Put A name For The Category", Toast.LENGTH_SHORT).show();
                 })
-                .setNegativeButton("ביטול", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -236,15 +252,15 @@ public class TasksActivity extends BaseActivity {
         FBRef.getUserCategoriesRef().document(categoryName)
                 .set(category)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "קטגוריה נוספה!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Category Added!", Toast.LENGTH_SHORT).show();
                     loadCategoriesAndTasks();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בהוספת קטגוריה", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed Adding Category", Toast.LENGTH_SHORT).show());
     }
 
     private void updateTasksMonthAndTime() {
         if (!NetworkUtil.isConnected(this)) {
-            Toast.makeText(this, "אין חיבור לאינטרנט.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
             return;
         }
 

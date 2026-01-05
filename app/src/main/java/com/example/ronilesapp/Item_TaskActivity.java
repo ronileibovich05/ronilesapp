@@ -19,8 +19,8 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
-public class Item_TaskActivity extends BaseActivity {
 
+public class Item_TaskActivity extends BaseActivity {
 
     private EditText editTaskTitle, editTaskDescription;
     private DatePicker datePicker;
@@ -32,15 +32,21 @@ public class Item_TaskActivity extends BaseActivity {
     private ArrayAdapter<String> categoryAdapter;
     private List<String> categoryList = new ArrayList<>();
 
+    // 🔹 Theme
+    private SharedPreferences sharedPreferences;
+    private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-
+        // 🔹 SharedPreferences ו־Theme ראשוני
+        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+        applyInitialTheme(sharedPreferences.getString("theme", "pink_brown"));
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_task);
 
+        // 🔹 findViewById אחרי setContentView
         editTaskTitle = findViewById(R.id.editTextTaskTitle);
         editTaskDescription = findViewById(R.id.editTextTaskDescription);
         datePicker = findViewById(R.id.datePickerTask);
@@ -49,14 +55,18 @@ public class Item_TaskActivity extends BaseActivity {
         btnAddCategory = findViewById(R.id.btnAddCategory);
         btnCancelTask = findViewById(R.id.buttonCancelTask);
 
+        // 🔹 Spinner setup
         categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryList);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(categoryAdapter);
 
+        // 🔹 load categories
         loadCategories();
 
+        // 🔹 Add Category button
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
 
+        // 🔹 Cancel Task button
         btnCancelTask.setOnClickListener(v -> {
             if (!editTaskTitle.getText().toString().isEmpty() || !editTaskDescription.getText().toString().isEmpty()) {
                 new AlertDialog.Builder(this)
@@ -69,9 +79,89 @@ public class Item_TaskActivity extends BaseActivity {
                 finish();
             }
         });
+
+        // 🔹 Theme listener בזמן אמת
+        themeListener = (prefs, key) -> {
+            if ("theme".equals(key)) {
+                applyThemeColors();
+            }
+        };
+        sharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
+
+        // 🔹 החלת צבעים ראשונית
+        applyThemeColors();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (themeListener != null && sharedPreferences != null) {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
+        }
+    }
 
+    // 🔹 Theme ראשוני
+    private void applyInitialTheme(String themeName) {
+        switch (themeName) {
+            case "pink_brown":
+                setTheme(R.style.Theme_PinkBrown);
+                break;
+            case "blue_white":
+                setTheme(R.style.Theme_BlueWhite);
+                break;
+            case "green_white":
+                setTheme(R.style.Theme_GreenWhite);
+                break;
+            default:
+                setTheme(R.style.Theme_PinkBrown);
+                break;
+        }
+    }
+
+    // 🔹 החלפת צבעים לפי Theme
+    private void applyThemeColors() {
+        String theme = sharedPreferences.getString("theme", "pink_brown");
+        int backgroundColor, buttonColor, textColor;
+
+        switch (theme) {
+            case "pink_brown":
+                backgroundColor = getResources().getColor(R.color.pink_background);
+                buttonColor = getResources().getColor(R.color.pink_primary);
+                textColor = getResources().getColor(R.color.brown);
+                break;
+            case "blue_white":
+                backgroundColor = getResources().getColor(R.color.blue_background);
+                buttonColor = getResources().getColor(R.color.blue_primary);
+                textColor = getResources().getColor(R.color.black);
+                break;
+            case "green_white":
+                backgroundColor = getResources().getColor(R.color.green_background);
+                buttonColor = getResources().getColor(R.color.green_primary);
+                textColor = getResources().getColor(R.color.black);
+                break;
+            default:
+                backgroundColor = getResources().getColor(R.color.pink_background);
+                buttonColor = getResources().getColor(R.color.pink_primary);
+                textColor = getResources().getColor(R.color.brown);
+                break;
+        }
+
+        // רקע כללי
+        findViewById(android.R.id.content).setBackgroundColor(backgroundColor);
+
+        // כפתורים
+        btnAddCategory.setBackgroundColor(buttonColor);
+        btnAddCategory.setTextColor(textColor);
+        btnCancelTask.setBackgroundColor(buttonColor);
+        btnCancelTask.setTextColor(textColor);
+
+        // EditText ו-Spinner
+        editTaskTitle.setTextColor(textColor);
+        editTaskDescription.setTextColor(textColor);
+        spinnerCategory.setPopupBackgroundResource(android.R.color.white);
+    }
+
+    // 🔹 Load categories
     private void loadCategories() {
         categoryList.clear();
         FBRef.getUserCategoriesRef().get().addOnCompleteListener(task -> {
@@ -86,6 +176,7 @@ public class Item_TaskActivity extends BaseActivity {
         });
     }
 
+    // 🔹 Add category dialog
     private void showAddCategoryDialog() {
         EditText input = new EditText(this);
         input.setHint("שם קטגוריה");
@@ -115,12 +206,13 @@ public class Item_TaskActivity extends BaseActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בהוספת קטגוריה", Toast.LENGTH_SHORT).show());
     }
 
+    // 🔹 Save task
     public void saveTask(View view) {
         String title = editTaskTitle.getText().toString().trim();
         String description = editTaskDescription.getText().toString().trim();
 
         int day = datePicker.getDayOfMonth();
-        int month = datePicker.getMonth() + 1; // DatePicker מתחיל מ-0
+        int month = datePicker.getMonth() + 1;
         int year = datePicker.getYear();
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
@@ -158,5 +250,4 @@ public class Item_TaskActivity extends BaseActivity {
                         Toast.makeText(Item_TaskActivity.this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
     }
-
 }

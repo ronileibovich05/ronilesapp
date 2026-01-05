@@ -14,6 +14,8 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:gravity="center"
+        android:layout_gravity="center"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintStart_toStartOf="parent"
@@ -45,19 +47,19 @@
 
             <RadioButton
                 android:id="@+id/rbPinkBrown"
-                android:text="pink / brown"
+                android:text="Pink / Brown"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
             <RadioButton
                 android:id="@+id/rbBlueWhite"
-                android:text="blue / white"
+                android:text="Blue / White"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
             <RadioButton
                 android:id="@+id/rbGreenWhite"
-                android:text="green / white"
+                android:text="Green / White"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
         </RadioGroup>

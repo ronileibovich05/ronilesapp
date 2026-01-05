@@ -1,50 +1,49 @@
 package com.example.ronilesapp;
 
-import static com.example.ronilesapp.FBRef.*;
-
-import android.content.SharedPreferences;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.CheckBox;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
-public class LoginActivity extends BaseActivity {
+public class LoginActivity extends AppCompatActivity {
 
-
-
+    private FirebaseAuth mAuth;
+    private EditText emailEditText, passwordEditText;
+    private CheckBox rememberCheckBox;  // <-- ה-Checkbox
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
 
-        // אתחול Firebase Auth
         mAuth = FirebaseAuth.getInstance();
 
+        // חיבור Views
+        emailEditText = findViewById(R.id.edittext_email);
+        passwordEditText = findViewById(R.id.edittext_password);
+        rememberCheckBox = findViewById(R.id.checkbox_remember);  // <-- חדש
+
+        // בדיקה אם נשמרו פרטי התחברות
+        SharedPreferences prefs = getSharedPreferences("loginPrefs", MODE_PRIVATE);
+        String savedEmail = prefs.getString("email", "");
+        String savedPassword = prefs.getString("password", "");
+        boolean remember = prefs.getBoolean("remember", false);
+
+        if (remember) {
+            emailEditText.setText(savedEmail);
+            passwordEditText.setText(savedPassword);
+            rememberCheckBox.setChecked(true);
+        }
     }
 
-
-
-    // פונקציה ללחיצה על כפתור Login
     public void login(View view) {
-        EditText emailEditText = findViewById(R.id.edittext_email);
-        EditText passwordEditText = findViewById(R.id.edittext_password);
-
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
@@ -54,25 +53,33 @@ public class LoginActivity extends BaseActivity {
         }
 
         mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            Intent intent = new Intent(LoginActivity.this, TasksActivity.class);
-                            startActivity(intent);
-                            finish();
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // שמירת פרטי התחברות לפי ה-Checkbox
+                        SharedPreferences prefs = getSharedPreferences("loginPrefs", MODE_PRIVATE);
+                        SharedPreferences.Editor editor = prefs.edit();
+                        if (rememberCheckBox.isChecked()) {
+                            editor.putString("email", email);
+                            editor.putString("password", password);
+                            editor.putBoolean("remember", true);
                         } else {
-                            Toast.makeText(LoginActivity.this,
-                                    "Login failed: " + task.getException().getMessage(),
-                                    Toast.LENGTH_LONG).show();
+                            editor.clear(); // לא לשמור
                         }
+                        editor.apply();
+
+                        // מעבר למסך המשימות
+                        Intent intent = new Intent(LoginActivity.this, TasksActivity.class);
+                        startActivity(intent);
+                        finish();
+                    } else {
+                        Toast.makeText(LoginActivity.this,
+                                "Login failed: " + task.getException().getMessage(),
+                                Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
-    // פונקציה ללחיצה על כפתור Register
     public void register(View view) {
-        Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-        startActivity(intent);
+        startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
     }
 }
