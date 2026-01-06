@@ -70,10 +70,10 @@ public class Item_TaskActivity extends BaseActivity {
         btnCancelTask.setOnClickListener(v -> {
             if (!editTaskTitle.getText().toString().isEmpty() || !editTaskDescription.getText().toString().isEmpty()) {
                 new AlertDialog.Builder(this)
-                        .setTitle("חזרה")
-                        .setMessage("המשימה לא נשמרה. האם אתה בטוח שברצונך לחזור?")
-                        .setPositiveButton("כן", (dialog, which) -> finish())
-                        .setNegativeButton("לא", null)
+                        .setTitle("Return")
+                        .setMessage("Task is not saved. Sure you want to return?")
+                        .setPositiveButton("Yes", (dialog, which) -> finish())
+                        .setNegativeButton("No", null)
                         .show();
             } else {
                 finish();
@@ -171,7 +171,7 @@ public class Item_TaskActivity extends BaseActivity {
                 }
                 categoryAdapter.notifyDataSetChanged();
             } else {
-                Toast.makeText(this, "שגיאה בטעינת קטגוריות", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Failed Loading Categories", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -179,17 +179,17 @@ public class Item_TaskActivity extends BaseActivity {
     // 🔹 Add category dialog
     private void showAddCategoryDialog() {
         EditText input = new EditText(this);
-        input.setHint("שם קטגוריה");
+        input.setHint("Name Of Category");
 
         new AlertDialog.Builder(this)
-                .setTitle("הוסף קטגוריה")
+                .setTitle("Add Category")
                 .setView(input)
-                .setPositiveButton("שמור", (dialog, which) -> {
+                .setPositiveButton("Save", (dialog, which) -> {
                     String newCategory = input.getText().toString().trim();
                     if (!newCategory.isEmpty()) saveNewCategory(newCategory);
-                    else Toast.makeText(this, "יש להזין שם קטגוריה", Toast.LENGTH_SHORT).show();
+                    else Toast.makeText(this, "Please put a name for the category", Toast.LENGTH_SHORT).show();
                 })
-                .setNegativeButton("ביטול", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -201,9 +201,9 @@ public class Item_TaskActivity extends BaseActivity {
                     categoryList.add(categoryName);
                     categoryAdapter.notifyDataSetChanged();
                     spinnerCategory.setSelection(categoryList.indexOf(categoryName));
-                    Toast.makeText(this, "קטגוריה נוספה!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Category Added!", Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בהוספת קטגוריה", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed Adding Category", Toast.LENGTH_SHORT).show());
     }
 
     // 🔹 Save task
@@ -222,7 +222,7 @@ public class Item_TaskActivity extends BaseActivity {
                 : "ללא קטגוריה";
 
         if (title.isEmpty()) {
-            Toast.makeText(this, "נא למלא כותרת למשימה", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please enter a task title", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -230,7 +230,7 @@ public class Item_TaskActivity extends BaseActivity {
 
         FBRef.getUserTasksRef().document(title).set(newTask)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(Item_TaskActivity.this, "משימה נוספה!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(Item_TaskActivity.this, "Task Added!", Toast.LENGTH_SHORT).show();
 
                     Intent resultIntent = new Intent();
                     resultIntent.putExtra("newTaskTitle", title);
@@ -247,7 +247,7 @@ public class Item_TaskActivity extends BaseActivity {
                     finish();
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(Item_TaskActivity.this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(Item_TaskActivity.this, "Failed Saving: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
     }
 }

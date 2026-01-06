@@ -121,7 +121,7 @@ public class CategoryTasksFragment extends Fragment {
                                 displayedTaskList.remove(pos);
                                 adapter.notifyItemRemoved(pos);
                             }
-                            Toast.makeText(getContext(), "✅ משימה הושלמה!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "✅ Task Complete!", Toast.LENGTH_SHORT).show();
                         });
             }
         }, dragListener);
@@ -131,7 +131,7 @@ public class CategoryTasksFragment extends Fragment {
         spinnerSort = view.findViewById(R.id.spinnerSort);
         ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(getContext(),
                 android.R.layout.simple_spinner_item,
-                new String[]{"סדר הוספה", "סדר עצמי", "לפי תאריך", "לפי שעה"});
+                new String[]{"Date Added", "Custom Order", "By Date", "By Time"});
         sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSort.setAdapter(sortAdapter);
 
@@ -144,7 +144,7 @@ public class CategoryTasksFragment extends Fragment {
         });
 
         btnDeleteCategory = view.findViewById(R.id.btnDeleteCategory);
-        if ("כל המשימות".equals(category)) btnDeleteCategory.setVisibility(View.GONE);
+        if ("All Tasks".equals(category)) btnDeleteCategory.setVisibility(View.GONE);
         else btnDeleteCategory.setOnClickListener(v -> deleteCategory());
 
         loadTasksForCategory();
@@ -190,8 +190,8 @@ public class CategoryTasksFragment extends Fragment {
                 taskList.clear();
                 for (QueryDocumentSnapshot doc : task.getResult()) {
                     String taskCategory = doc.getString("category");
-                    if (taskCategory == null) taskCategory = "ללא קטגוריה";
-                    if (!category.equals("כל המשימות") && !taskCategory.equals(category)) continue;
+                    if (taskCategory == null) taskCategory = "No Category";
+                    if (!category.equals("All Tasks") && !taskCategory.equals(category)) continue;
 
                     Task taskObj = new Task();
                     taskObj.setTitle(doc.getString("title"));
@@ -226,31 +226,31 @@ public class CategoryTasksFragment extends Fragment {
                 displayedTaskList.addAll(taskList);
                 sortTasks(currentSortOption);
             } else {
-                Toast.makeText(getContext(), "שגיאה בטעינת המשימות", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Failed Loading Tasks", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void deleteCategory() {
         new AlertDialog.Builder(getContext())
-                .setTitle("מחיקת קטגוריה")
-                .setMessage("האם למחוק את הקטגוריה \"" + category + "\"? המשימות יועברו ל'כל המשימות'.")
+                .setTitle("Delete Category")
+                .setMessage("Sure you want to delete the category \"" + category + "\"? All tasks will move to 'All Tasks'.")
                 .setPositiveButton("מחק", (dialog, which) -> {
                     FBRef.getUserTasksRef().whereEqualTo("category", category).get()
                             .addOnCompleteListener(task -> {
                                 if (task.isSuccessful()) {
                                     for (QueryDocumentSnapshot doc : task.getResult())
-                                        doc.getReference().update("category", "ללא קטגוריה");
+                                        doc.getReference().update("category", "No Category");
 
                                     FBRef.getUserCategoriesRef().document(category).delete()
                                             .addOnSuccessListener(aVoid ->
-                                                    Toast.makeText(getContext(), "קטגוריה נמחקה", Toast.LENGTH_SHORT).show())
+                                                    Toast.makeText(getContext(), "Category Removed", Toast.LENGTH_SHORT).show())
                                             .addOnFailureListener(e ->
-                                                    Toast.makeText(getContext(), "שגיאה במחיקה", Toast.LENGTH_SHORT).show());
+                                                    Toast.makeText(getContext(), "Failed Deleting Category", Toast.LENGTH_SHORT).show());
                                 }
                             });
                 })
-                .setNegativeButton("ביטול", null)
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 }
