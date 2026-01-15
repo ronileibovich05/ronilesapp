@@ -47,8 +47,8 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         String dateString = String.format("%02d/%02d/%04d", task.getDay(), task.getMonth(), task.getYear());
         String timeString = String.format("%02d:%02d", task.getHour(), task.getMinute());
 
-        holder.tvDay.setText("תאריך: " + dateString);
-        holder.tvHour.setText("שעה: " + timeString);
+        holder.tvDay.setText("Date: " + dateString);
+        holder.tvHour.setText("Hour: " + timeString);
 
         holder.checkBoxDone.setOnCheckedChangeListener(null);
         holder.checkBoxDone.setChecked(task.isDone());

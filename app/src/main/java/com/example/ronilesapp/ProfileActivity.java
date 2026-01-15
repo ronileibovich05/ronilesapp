@@ -121,7 +121,7 @@ public class ProfileActivity extends BaseActivity {
 
     private void loadUserProfile() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            Toast.makeText(this, "אין משתמש מחובר", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No User Connected", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -145,28 +145,28 @@ public class ProfileActivity extends BaseActivity {
                         profileImageView.setImageResource(R.drawable.ic_default_profile);
                     }
                 } else {
-                    Toast.makeText(this, "לא נמצאו נתוני משתמש", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "No user data found", Toast.LENGTH_SHORT).show();
                 }
             } else {
-                Toast.makeText(this, "שגיאה בטעינת פרופיל", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Error loading profile", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void showEditProfileDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("עריכת פרופיל");
+        builder.setTitle("Edit Profile");
 
         EditText inputFirstName = new EditText(this);
-        inputFirstName.setHint("שם פרטי");
+        inputFirstName.setHint("First Name");
         inputFirstName.setText(tvFirstName.getText().toString());
 
         EditText inputLastName = new EditText(this);
-        inputLastName.setHint("שם משפחה");
+        inputLastName.setHint("Last Name");
         inputLastName.setText(tvLastName.getText().toString());
 
         EditText inputProfileUrl = new EditText(this);
-        inputProfileUrl.setHint("כתובת URL תמונת פרופיל");
+        inputProfileUrl.setHint("Profile Image URL");
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -177,14 +177,14 @@ public class ProfileActivity extends BaseActivity {
 
         builder.setView(layout);
 
-        builder.setPositiveButton("שמור", (dialog, which) ->
+        builder.setPositiveButton("Save", (dialog, which) ->
                 updateUserProfile(
                         inputFirstName.getText().toString().trim(),
                         inputLastName.getText().toString().trim(),
                         inputProfileUrl.getText().toString().trim()
                 ));
 
-        builder.setNegativeButton("ביטול", null);
+        builder.setNegativeButton("Cancel", null);
         builder.show();
     }
 
@@ -194,7 +194,7 @@ public class ProfileActivity extends BaseActivity {
         FBRef.refUsers.document(uid)
                 .update("firstName", firstName, "lastName", lastName, "profileImageUrl", profileUrl)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "פרטי המשתמש עודכנו בהצלחה", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "User profile updated successfully", Toast.LENGTH_SHORT).show();
                     tvFirstName.setText(firstName);
                     tvLastName.setText(lastName);
                     if (!profileUrl.isEmpty()) {
@@ -205,6 +205,6 @@ public class ProfileActivity extends BaseActivity {
                     }
                 })
                 .addOnFailureListener(e ->
-                        Toast.makeText(this, "שגיאה בעדכון פרטי משתמש", Toast.LENGTH_SHORT).show());
+                        Toast.makeText(this, "Error updating user profile", Toast.LENGTH_SHORT).show());
     }
-}
+    }

@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- שם האפליקציה -->
-    <string name="app_name">ronilesapp</string>
+    <string name="app_name">RonilesApp</string>
 
-    <!-- מחרוזות עבור קטגוריות -->
-    <string name="add_category">הוסף קטגוריה</string>
-    <string name="choose_category">בחר קטגוריה</string>
-    <string name="new_category">קטגוריה חדשה</string>
+    <!-- Titles -->
+    <string name="create_task">Create Task</string>
+    <string name="task_title">Task Title</string>
+    <string name="task_description">Task Description</string>
+    <string name="select_date">Select Date</string>
+    <string name="select_time">Select Time</string>
+    <string name="category">Category</string>
 
-    <!-- מערך ברירת מחדל של קטגוריות -->
-    <string-array name="default_categories">
-        <item>בית</item>
-        <item>עבודה</item>
-        <item>לימודים</item>
-        <item>אחר</item>
-    </string-array>
+    <!-- Buttons -->
+    <string name="add_category">Add Category</string>
+    <string name="save_task">Save Task</string>
+    <string name="back_to_tasks">Back To Tasks</string>
+
+    <!-- Spinner prompt -->
+    <string name="choose_category">Choose Category</string>
 </resources>
+

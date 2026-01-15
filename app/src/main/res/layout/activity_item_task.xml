@@ -14,7 +14,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Create Task"
+            android:text="@string/create_task"
             android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="#5A4B4B"
@@ -26,7 +26,7 @@
             android:id="@+id/editTextTaskTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Task Title"
+            android:hint="@string/task_title"
             android:padding="12dp"
             android:textColor="#5A4B4B"
             android:textSize="16sp" />
@@ -36,7 +36,7 @@
             android:id="@+id/editTextTaskDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Task Description"
+            android:hint="@string/task_description"
             android:padding="12dp"
             android:textColor="#5A4B4B"
             android:textSize="16sp"
@@ -46,7 +46,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Select Date"
+            android:text="@string/select_date"
             android:textColor="#5A4B4B"
             android:textSize="16sp"
             android:layout_marginTop="16dp" />
@@ -62,7 +62,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Select Time"
+            android:text="@string/select_time"
             android:textColor="#5A4B4B"
             android:textSize="16sp"
             android:layout_marginTop="16dp" />
@@ -77,7 +77,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Category"
+            android:text="@string/category"
             android:textColor="#5A4B4B"
             android:textSize="16sp"
             android:layout_marginTop="16dp" />
@@ -94,7 +94,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/add_category"
-
             android:layout_marginTop="8dp"
             android:padding="10dp" />
 
@@ -103,21 +102,19 @@
             android:id="@+id/buttonSaveTask"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save Task"
-
+            android:text="@string/save_task"
             android:layout_marginTop="24dp"
             android:padding="12dp"
             android:onClick="saveTask" />
+
         <!-- כפתור ביטול / חזרה -->
         <Button
             android:id="@+id/buttonCancelTask"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="חזור למשימות"
-
+            android:text="@string/back_to_tasks"
             android:layout_marginTop="12dp"
-            android:padding="12dp"/>
-
+            android:padding="12dp" />
 
     </LinearLayout>
 

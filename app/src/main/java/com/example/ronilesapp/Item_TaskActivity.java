@@ -219,7 +219,7 @@ public class Item_TaskActivity extends BaseActivity {
 
         String category = spinnerCategory.getSelectedItem() != null
                 ? spinnerCategory.getSelectedItem().toString()
-                : "ללא קטגוריה";
+                : "No Category";
 
         if (title.isEmpty()) {
             Toast.makeText(this, "Please enter a task title", Toast.LENGTH_SHORT).show();
