@@ -1,6 +1,9 @@
 package com.example.ronilesapp;
 
+import java.util.Calendar;
+
 public class Task {
+    private String id; // 1. הוספתי את שדה ה-ID שחסר
     private String title;
     private String description;
     private int day;
@@ -13,10 +16,13 @@ public class Task {
     private int position;
     private long creationTime;
 
+    // בנאי ריק (חובה ל-Firebase)
     public Task() { }
 
-    public Task(String title, String description, int day, int month, int year,
+    // 2. עדכנתי את הבנאי כדי שיקבל גם את ה-id בהתחלה
+    public Task(String id, String title, String description, int day, int month, int year,
                 int hour, int minute, String category, boolean done) {
+        this.id = id; // שמירת ה-ID
         this.title = title;
         this.description = description;
         this.day = day;
@@ -30,6 +36,11 @@ public class Task {
     }
 
     // גטר וסטרים
+
+    // 3. הוספתי גטר וסטר ל-ID
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
@@ -62,4 +73,12 @@ public class Task {
 
     public long getCreationTime() { return creationTime; }
     public void setCreationTime(long creationTime) { this.creationTime = creationTime; }
+
+    // 4. פונקציה חדשה וחשובה - מחזירה את זמן המשימה במילי-שניות עבור ההתראות
+    public long getTimeInMillis() {
+        Calendar calendar = Calendar.getInstance();
+        // שים לב: ב-Calendar החודשים הם 0-11, אבל אנחנו שומרים 1-12. לכן עושים month - 1
+        calendar.set(year, month - 1, day, hour, minute, 0);
+        return calendar.getTimeInMillis();
+    }
 }

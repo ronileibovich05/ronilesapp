@@ -12,6 +12,7 @@ import android.widget.Spinner;
 import android.widget.TimePicker;
 import android.widget.Toast;
 import android.widget.Button;
+import java.util.Calendar;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -59,6 +60,19 @@ public class Item_TaskActivity extends BaseActivity {
         categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryList);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(categoryAdapter);
+
+        // Check if we are in Edit Mode
+        if (getIntent().hasExtra("taskId")) {
+            String taskIdToEdit = getIntent().getStringExtra("taskId");
+            String oldTitle = getIntent().getStringExtra("title");
+            String oldDesc = getIntent().getStringExtra("desc");
+            // ... get other extras ...
+
+            // Set text to fields
+            editTaskTitle.setText(oldTitle);
+            editTaskDescription.setText(oldDesc);
+            // ... update date/time pickers ...
+        }
 
         // 🔹 load categories
         loadCategories();
@@ -211,8 +225,9 @@ public class Item_TaskActivity extends BaseActivity {
         String title = editTaskTitle.getText().toString().trim();
         String description = editTaskDescription.getText().toString().trim();
 
+        // נתונים מהפיקרים
         int day = datePicker.getDayOfMonth();
-        int month = datePicker.getMonth() + 1;
+        int month = datePicker.getMonth(); // שים לב: ב-Calendar חודשים הם 0-11
         int year = datePicker.getYear();
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
@@ -226,28 +241,49 @@ public class Item_TaskActivity extends BaseActivity {
             return;
         }
 
-        Task newTask = new Task(title, description, day, month, year, hour, minute, category, false);
+        // 1. חישוב הזמן המדויק במילי-שניות עבור ההתראה
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(year, month, day, hour, minute, 0);
+        long taskTimeInMillis = calendar.getTimeInMillis();
 
-        FBRef.getUserTasksRef().document(title).set(newTask)
+        // בדיקה שהזמן לא עבר כבר (אופציונלי - כדי לא לקבל התראה מיידית על משימה בעבר)
+        if (taskTimeInMillis < System.currentTimeMillis()) {
+            // אם בחר זמן עבר, נוסיף לו דקה כדי שלא יצעק מיד, או פשוט נתעלם
+            // כאן נשאיר כרגיל
+        }
+
+        // 2. יצירת מזהה ייחודי (ID) למשימה
+        // חשוב מאוד! לא להשתמש ב-Title כ-ID כי אם תשנה שם למשימה זה ייצור חדשה
+        String taskId = FBRef.getUserTasksRef().document().getId();
+
+        // יצירת האובייקט (הוספתי את ה-taskTimeInMillis לאובייקט אם תרצה לשמור אותו גם)
+        // שים לב: אני שולח month + 1 לתצוגה, אבל לחישוב הזמן השתמשתי ב-month המקורי
+        Task newTask = new Task(taskId, title, description, day, month + 1, year, hour, minute, category, false);
+
+        // אופציונלי: אם הוספת שדה timeInMillis למחלקה Task, תוסיף:
+        // newTask.setTimeInMillis(taskTimeInMillis);
+        String finalTaskId;
+        if (getIntent().hasExtra("taskId")) {
+            // EDIT MODE: Use existing ID
+            finalTaskId = getIntent().getStringExtra("taskId");
+        } else {
+            // CREATE MODE: Generate new ID
+            finalTaskId = FBRef.getUserTasksRef().document().getId();
+        }
+        FBRef.getUserTasksRef().document(taskId).set(newTask)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(Item_TaskActivity.this, "Task Added!", Toast.LENGTH_SHORT).show();
+
+                    // Schedule the notification
+                    NotificationHelper.scheduleNotification(this, taskTimeInMillis, title, taskId);
+
+                    // Print to Logcat for debugging
+                    System.out.println("DEBUG: Alarm set for task: " + title);
+
+                    Toast.makeText(Item_TaskActivity.this, "Task Added Successfully!", Toast.LENGTH_SHORT).show();
 
                     Intent resultIntent = new Intent();
-                    resultIntent.putExtra("newTaskTitle", title);
-                    resultIntent.putExtra("newTaskDescription", description);
-                    resultIntent.putExtra("newTaskDay", day);
-                    resultIntent.putExtra("newTaskMonth", month);
-                    resultIntent.putExtra("newTaskYear", year);
-                    resultIntent.putExtra("newTaskHour", hour);
-                    resultIntent.putExtra("newTaskMinute", minute);
-                    resultIntent.putExtra("newTaskCategory", category);
-                    resultIntent.putExtra("newTaskDone", false);
                     setResult(RESULT_OK, resultIntent);
-
                     finish();
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(Item_TaskActivity.this, "Failed Saving: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                );
+                });
     }
 }

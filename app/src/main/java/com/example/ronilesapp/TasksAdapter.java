@@ -17,16 +17,20 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
 
     private final List<Task> taskList;
     private final OnTaskCheckedListener listener;
+    private final OnTaskClickListener clickListener; // מאזין ללחיצה על עריכה
     private final OnStartDragListener dragListener;
     private boolean dragEnabled = true;
 
+    // ממשקים (Interfaces)
     public interface OnTaskCheckedListener { void onTaskChecked(Task task, boolean isChecked); }
     public interface OnStartDragListener { void onStartDrag(RecyclerView.ViewHolder viewHolder); }
+    public interface OnTaskClickListener { void onTaskClick(Task task); }
 
-    public TasksAdapter(List<Task> taskList, OnTaskCheckedListener listener, OnStartDragListener dragListener) {
+    public TasksAdapter(List<Task> taskList, OnTaskCheckedListener listener, OnStartDragListener dragListener, OnTaskClickListener clickListener) {
         this.taskList = taskList;
         this.listener = listener;
         this.dragListener = dragListener;
+        this.clickListener = clickListener;
     }
 
     @NonNull
@@ -56,6 +60,7 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             if (listener != null) listener.onTaskChecked(task, isChecked);
         });
 
+        // גרירה
         if (dragEnabled) {
             holder.dragHandle.setVisibility(View.VISIBLE);
             holder.dragHandle.setOnTouchListener((v, event) -> {
@@ -65,6 +70,17 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
                 return false;
             });
         } else holder.dragHandle.setVisibility(View.GONE);
+
+        // --- כאן השינוי החשוב! ---
+        // הגדרת הלחיצה על כפתור ה-EDIT (הטקסט הכחול שהוספת)
+        holder.tvEditButton.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onTaskClick(task);
+            }
+        });
+
+        // אופציונלי: אפשר להשאיר גם לחיצה על כל הכרטיס אם רוצים, אבל ביקשת ספציפית על ה-EDIT
+        // holder.itemView.setOnClickListener(v -> ... );
     }
 
     @Override
@@ -72,6 +88,10 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
 
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvDescription, tvDay, tvHour, tvCategory;
+
+        // משתנה חדש לכפתור העריכה
+        TextView tvEditButton;
+
         CheckBox checkBoxDone;
         ImageView dragHandle;
 
@@ -82,6 +102,10 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             tvDay = itemView.findViewById(R.id.tvTaskDay);
             tvHour = itemView.findViewById(R.id.tvTaskHour);
             tvCategory = itemView.findViewById(R.id.tvTaskCategory);
+
+            // מציאת כפתור העריכה לפי ה-ID שהגדרנו ב-XML
+            tvEditButton = itemView.findViewById(R.id.tvEditButton);
+
             checkBoxDone = itemView.findViewById(R.id.checkBoxDone);
             dragHandle = itemView.findViewById(R.id.dragHandle);
         }

@@ -1,82 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="12dp"
-    android:background="#FBEFF1"
-    android:layout_marginBottom="8dp"
-    android:elevation="2dp">
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
 
-    <ImageView
-        android:id="@+id/dragHandle"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:src="@drawable/ic_drag_handle"
-        android:layout_gravity="end"
-        android:contentDescription="גרירה"
-        android:visibility="gone"
-        android:padding="4dp"/>
-
-
-    <LinearLayout
-        android:layout_width="0dp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:background="#FBEFF1"
+        android:padding="12dp">
+
+        <CheckBox
+            android:id="@+id/checkBoxDone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:buttonTint="#5A4B4B"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
         <TextView
             android:id="@+id/tvTaskTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="Task Title"
             android:textStyle="bold"
-            android:textSize="16sp"
-            android:textColor="#5A4B4B" />
+            android:textSize="18sp"
+            android:textColor="#5A4B4B"
+            android:layout_marginStart="8dp"
+            app:layout_constraintStart_toEndOf="@id/checkBoxDone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/tvEditButton" />
 
         <TextView
             android:id="@+id/tvTaskDescription"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="Task Description"
             android:textSize="14sp"
             android:textColor="#5A4B4B"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="@id/tvTaskTitle"
+            app:layout_constraintTop_toBottomOf="@id/tvTaskTitle"
+            app:layout_constraintEnd_toStartOf="@+id/tvEditButton" />
 
         <TextView
             android:id="@+id/tvTaskDay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Day"
-            android:textSize="14sp"
+            android:text="12/05/2025"
+            android:textSize="13sp"
             android:textColor="#5A4B4B"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="8dp"
+            app:layout_constraintStart_toStartOf="@id/tvTaskTitle"
+            app:layout_constraintTop_toBottomOf="@id/tvTaskDescription" />
 
         <TextView
             android:id="@+id/tvTaskHour"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Hour"
-            android:textSize="14sp"
+            android:text="14:30"
+            android:textSize="13sp"
             android:textColor="#5A4B4B"
-            android:layout_marginTop="4dp" />
+            android:layout_marginStart="12dp"
+            app:layout_constraintStart_toEndOf="@id/tvTaskDay"
+            app:layout_constraintTop_toTopOf="@id/tvTaskDay" />
 
         <TextView
             android:id="@+id/tvTaskCategory"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Category"
-            android:textSize="14sp"
+            android:textStyle="italic"
+            android:textSize="12sp"
             android:textColor="#5A4B4B"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="@id/tvTaskTitle"
+            app:layout_constraintTop_toBottomOf="@id/tvTaskDay" />
 
-        <CheckBox
-            android:id="@+id/checkBoxDone"
+        <TextView
+            android:id="@+id/tvEditButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Done"
-            android:textColor="#5A4B4B"
-            android:layout_marginTop="4dp"/>
-    </LinearLayout>
+            android:text="EDIT"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#2196F3"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-</LinearLayout>
+        <ImageView
+            android:id="@+id/dragHandle"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_drag_handle"
+            android:contentDescription="גרירה"
+            android:visibility="visible"
+            app:tint="#5A4B4B"
+            android:layout_marginTop="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

@@ -99,8 +99,12 @@ public class SettingsActivity extends BaseActivity {
             editor.apply();
         });
 
-        // התנתקות
+        // בתוך ה-onCreate
         btnLogout.setOnClickListener(v -> {
+            // 1. ניתוק מ-Firebase Authentication
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+
+            // 2. מעבר מסך
             startActivity(new Intent(SettingsActivity.this, LoginActivity.class)
                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
             finish();
