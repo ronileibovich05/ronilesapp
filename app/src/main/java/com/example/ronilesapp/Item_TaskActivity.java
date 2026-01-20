@@ -33,21 +33,22 @@ public class Item_TaskActivity extends BaseActivity {
     private ArrayAdapter<String> categoryAdapter;
     private List<String> categoryList = new ArrayList<>();
 
-    // 🔹 Theme
     private SharedPreferences sharedPreferences;
     private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
+
+    private String taskIdToEdit = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // 🔹 SharedPreferences ו־Theme ראשוני
+
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
         applyInitialTheme(sharedPreferences.getString("theme", "pink_brown"));
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_task);
 
-        // 🔹 findViewById אחרי setContentView
+
         editTaskTitle = findViewById(R.id.editTextTaskTitle);
         editTaskDescription = findViewById(R.id.editTextTaskDescription);
         datePicker = findViewById(R.id.datePickerTask);
@@ -56,45 +57,36 @@ public class Item_TaskActivity extends BaseActivity {
         btnAddCategory = findViewById(R.id.btnAddCategory);
         btnCancelTask = findViewById(R.id.buttonCancelTask);
 
-        // 🔹 Spinner setup
+
         categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryList);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(categoryAdapter);
 
-        // Check if we are in Edit Mode
         if (getIntent().hasExtra("taskId")) {
-            String taskIdToEdit = getIntent().getStringExtra("taskId");
-            String oldTitle = getIntent().getStringExtra("title");
-            String oldDesc = getIntent().getStringExtra("desc");
-            // ... get other extras ...
+            taskIdToEdit = getIntent().getStringExtra("taskId"); // שומרים למשתנה המחלקה
 
-            // Set text to fields
-            editTaskTitle.setText(oldTitle);
-            editTaskDescription.setText(oldDesc);
-            // ... update date/time pickers ...
+            editTaskTitle.setText(getIntent().getStringExtra("title"));
+            editTaskDescription.setText(getIntent().getStringExtra("desc"));
+
+            int y = getIntent().getIntExtra("year", 2025);
+            int m = getIntent().getIntExtra("month", 1);
+            int d = getIntent().getIntExtra("day", 1);
+            datePicker.updateDate(y, m - 1, d); // DatePicker צריך חודש 0-11
+
+            int h = getIntent().getIntExtra("hour", 12);
+            int min = getIntent().getIntExtra("minute", 0);
+            timePicker.setHour(h);
+            timePicker.setMinute(min);
         }
 
-        // 🔹 load categories
         loadCategories();
 
-        // 🔹 Add Category button
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
 
-        // 🔹 Cancel Task button
         btnCancelTask.setOnClickListener(v -> {
-            if (!editTaskTitle.getText().toString().isEmpty() || !editTaskDescription.getText().toString().isEmpty()) {
-                new AlertDialog.Builder(this)
-                        .setTitle("Return")
-                        .setMessage("Task is not saved. Sure you want to return?")
-                        .setPositiveButton("Yes", (dialog, which) -> finish())
-                        .setNegativeButton("No", null)
-                        .show();
-            } else {
-                finish();
-            }
+            finish(); //
         });
 
-        // 🔹 Theme listener בזמן אמת
         themeListener = (prefs, key) -> {
             if ("theme".equals(key)) {
                 applyThemeColors();
@@ -102,7 +94,7 @@ public class Item_TaskActivity extends BaseActivity {
         };
         sharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
 
-        // 🔹 החלת צבעים ראשונית
+
         applyThemeColors();
     }
 
@@ -114,25 +106,15 @@ public class Item_TaskActivity extends BaseActivity {
         }
     }
 
-    // 🔹 Theme ראשוני
     private void applyInitialTheme(String themeName) {
         switch (themeName) {
-            case "pink_brown":
-                setTheme(R.style.Theme_PinkBrown);
-                break;
-            case "blue_white":
-                setTheme(R.style.Theme_BlueWhite);
-                break;
-            case "green_white":
-                setTheme(R.style.Theme_GreenWhite);
-                break;
-            default:
-                setTheme(R.style.Theme_PinkBrown);
-                break;
+            case "pink_brown": setTheme(R.style.Theme_PinkBrown); break;
+            case "blue_white": setTheme(R.style.Theme_BlueWhite); break;
+            case "green_white": setTheme(R.style.Theme_GreenWhite); break;
+            default: setTheme(R.style.Theme_PinkBrown); break;
         }
     }
 
-    // 🔹 החלפת צבעים לפי Theme
     private void applyThemeColors() {
         String theme = sharedPreferences.getString("theme", "pink_brown");
         int backgroundColor, buttonColor, textColor;
@@ -160,22 +142,16 @@ public class Item_TaskActivity extends BaseActivity {
                 break;
         }
 
-        // רקע כללי
         findViewById(android.R.id.content).setBackgroundColor(backgroundColor);
-
-        // כפתורים
         btnAddCategory.setBackgroundColor(buttonColor);
         btnAddCategory.setTextColor(textColor);
         btnCancelTask.setBackgroundColor(buttonColor);
         btnCancelTask.setTextColor(textColor);
-
-        // EditText ו-Spinner
         editTaskTitle.setTextColor(textColor);
         editTaskDescription.setTextColor(textColor);
         spinnerCategory.setPopupBackgroundResource(android.R.color.white);
     }
 
-    // 🔹 Load categories
     private void loadCategories() {
         categoryList.clear();
         FBRef.getUserCategoriesRef().get().addOnCompleteListener(task -> {
@@ -184,13 +160,21 @@ public class Item_TaskActivity extends BaseActivity {
                     categoryList.add(doc.getString("name"));
                 }
                 categoryAdapter.notifyDataSetChanged();
+
+                // אם אנחנו בעריכה, ננסה לבחור את הקטגוריה הנכונה
+                if (taskIdToEdit != null) {
+                    String currentCat = getIntent().getStringExtra("category");
+                    if (currentCat != null) {
+                        int pos = categoryAdapter.getPosition(currentCat);
+                        if (pos >= 0) spinnerCategory.setSelection(pos);
+                    }
+                }
             } else {
                 Toast.makeText(this, "Failed Loading Categories", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    // 🔹 Add category dialog
     private void showAddCategoryDialog() {
         EditText input = new EditText(this);
         input.setHint("Name Of Category");
@@ -220,14 +204,12 @@ public class Item_TaskActivity extends BaseActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed Adding Category", Toast.LENGTH_SHORT).show());
     }
 
-    // 🔹 Save task
     public void saveTask(View view) {
         String title = editTaskTitle.getText().toString().trim();
         String description = editTaskDescription.getText().toString().trim();
 
-        // נתונים מהפיקרים
         int day = datePicker.getDayOfMonth();
-        int month = datePicker.getMonth(); // שים לב: ב-Calendar חודשים הם 0-11
+        int month = datePicker.getMonth(); // 0-11
         int year = datePicker.getYear();
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
@@ -241,45 +223,26 @@ public class Item_TaskActivity extends BaseActivity {
             return;
         }
 
-        // 1. חישוב הזמן המדויק במילי-שניות עבור ההתראה
         Calendar calendar = Calendar.getInstance();
         calendar.set(year, month, day, hour, minute, 0);
         long taskTimeInMillis = calendar.getTimeInMillis();
 
-        // בדיקה שהזמן לא עבר כבר (אופציונלי - כדי לא לקבל התראה מיידית על משימה בעבר)
-        if (taskTimeInMillis < System.currentTimeMillis()) {
-            // אם בחר זמן עבר, נוסיף לו דקה כדי שלא יצעק מיד, או פשוט נתעלם
-            // כאן נשאיר כרגיל
-        }
-
-        // 2. יצירת מזהה ייחודי (ID) למשימה
-        // חשוב מאוד! לא להשתמש ב-Title כ-ID כי אם תשנה שם למשימה זה ייצור חדשה
-        String taskId = FBRef.getUserTasksRef().document().getId();
-
-        // יצירת האובייקט (הוספתי את ה-taskTimeInMillis לאובייקט אם תרצה לשמור אותו גם)
-        // שים לב: אני שולח month + 1 לתצוגה, אבל לחישוב הזמן השתמשתי ב-month המקורי
-        Task newTask = new Task(taskId, title, description, day, month + 1, year, hour, minute, category, false);
-
-        // אופציונלי: אם הוספת שדה timeInMillis למחלקה Task, תוסיף:
-        // newTask.setTimeInMillis(taskTimeInMillis);
         String finalTaskId;
-        if (getIntent().hasExtra("taskId")) {
-            // EDIT MODE: Use existing ID
-            finalTaskId = getIntent().getStringExtra("taskId");
+
+        if (taskIdToEdit != null) {
+            finalTaskId = taskIdToEdit;
         } else {
-            // CREATE MODE: Generate new ID
             finalTaskId = FBRef.getUserTasksRef().document().getId();
         }
-        FBRef.getUserTasksRef().document(taskId).set(newTask)
+
+        Task newTask = new Task(finalTaskId, title, description, day, month + 1, year, hour, minute, category, false);
+
+        FBRef.getUserTasksRef().document(finalTaskId).set(newTask)
                 .addOnSuccessListener(aVoid -> {
+                    NotificationHelper.scheduleNotification(this, taskTimeInMillis, title, finalTaskId);
 
-                    // Schedule the notification
-                    NotificationHelper.scheduleNotification(this, taskTimeInMillis, title, taskId);
-
-                    // Print to Logcat for debugging
-                    System.out.println("DEBUG: Alarm set for task: " + title);
-
-                    Toast.makeText(Item_TaskActivity.this, "Task Added Successfully!", Toast.LENGTH_SHORT).show();
+                    String msg = (taskIdToEdit != null) ? "Task Updated!" : "Task Created!";
+                    Toast.makeText(Item_TaskActivity.this, msg, Toast.LENGTH_SHORT).show();
 
                     Intent resultIntent = new Intent();
                     setResult(RESULT_OK, resultIntent);
