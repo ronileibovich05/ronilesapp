@@ -93,17 +93,5 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <ImageView
-            android:id="@+id/dragHandle"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_drag_handle"
-            android:contentDescription="גרירה"
-            android:visibility="visible"
-            app:tint="#5A4B4B"
-            android:layout_marginTop="8dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>

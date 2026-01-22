@@ -1,11 +1,9 @@
 package com.example.ronilesapp;
 
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,19 +15,16 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
 
     private final List<Task> taskList;
     private final OnTaskCheckedListener listener;
-    private final OnTaskClickListener clickListener; // מאזין ללחיצה על עריכה
-    private final OnStartDragListener dragListener;
-    private boolean dragEnabled = true;
+    private final OnTaskClickListener clickListener; // מאזין לעריכה
 
-    // ממשקים (Interfaces)
+    // ממשקים (הורדנו את ממשק הגרירה)
     public interface OnTaskCheckedListener { void onTaskChecked(Task task, boolean isChecked); }
-    public interface OnStartDragListener { void onStartDrag(RecyclerView.ViewHolder viewHolder); }
     public interface OnTaskClickListener { void onTaskClick(Task task); }
 
-    public TasksAdapter(List<Task> taskList, OnTaskCheckedListener listener, OnStartDragListener dragListener, OnTaskClickListener clickListener) {
+    // בנאי (Constructor) - הורדנו את ה-dragListener מהפרמטרים
+    public TasksAdapter(List<Task> taskList, OnTaskCheckedListener listener, OnTaskClickListener clickListener) {
         this.taskList = taskList;
         this.listener = listener;
-        this.dragListener = dragListener;
         this.clickListener = clickListener;
     }
 
@@ -60,27 +55,12 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             if (listener != null) listener.onTaskChecked(task, isChecked);
         });
 
-        // גרירה
-        if (dragEnabled) {
-            holder.dragHandle.setVisibility(View.VISIBLE);
-            holder.dragHandle.setOnTouchListener((v, event) -> {
-                if (event.getAction() == MotionEvent.ACTION_DOWN && dragListener != null) {
-                    dragListener.onStartDrag(holder);
-                }
-                return false;
-            });
-        } else holder.dragHandle.setVisibility(View.GONE);
-
-        // --- כאן השינוי החשוב! ---
-        // הגדרת הלחיצה על כפתור ה-EDIT (הטקסט הכחול שהוספת)
+        // לחיצה על כפתור ה-EDIT
         holder.tvEditButton.setOnClickListener(v -> {
             if (clickListener != null) {
                 clickListener.onTaskClick(task);
             }
         });
-
-        // אופציונלי: אפשר להשאיר גם לחיצה על כל הכרטיס אם רוצים, אבל ביקשת ספציפית על ה-EDIT
-        // holder.itemView.setOnClickListener(v -> ... );
     }
 
     @Override
@@ -88,12 +68,9 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
 
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvDescription, tvDay, tvHour, tvCategory;
-
-        // משתנה חדש לכפתור העריכה
         TextView tvEditButton;
-
         CheckBox checkBoxDone;
-        ImageView dragHandle;
+        // מחקנו את ה-ImageView של ה-DragHandle מכאן
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -102,12 +79,8 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             tvDay = itemView.findViewById(R.id.tvTaskDay);
             tvHour = itemView.findViewById(R.id.tvTaskHour);
             tvCategory = itemView.findViewById(R.id.tvTaskCategory);
-
-            // מציאת כפתור העריכה לפי ה-ID שהגדרנו ב-XML
             tvEditButton = itemView.findViewById(R.id.tvEditButton);
-
             checkBoxDone = itemView.findViewById(R.id.checkBoxDone);
-            dragHandle = itemView.findViewById(R.id.dragHandle);
         }
     }
 }

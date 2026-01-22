@@ -4,29 +4,30 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
-    <!-- EditText לחיפוש -->
     <EditText
         android:id="@+id/editTextSearch"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Search Task"
         android:layout_margin="12dp"
+        android:background="@android:drawable/editbox_background_normal"
+        android:padding="12dp"
+        android:drawableStart="@android:drawable/ic_menu_search"
+        android:drawablePadding="8dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Spinner למיון המשימות -->
     <Spinner
         android:id="@+id/spinnerSort"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:layout_marginTop="8dp"
+        android:minHeight="48dp"
         app:layout_constraintTop_toBottomOf="@id/editTextSearch"
         app:layout_constraintStart_toStartOf="parent"/>
 
-    <!-- RecyclerView לרשימת המשימות -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewCategoryTasks"
         android:layout_width="0dp"
@@ -37,7 +38,44 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- כפתור מחיקת קטגוריה -->
+    <LinearLayout
+        android:id="@+id/emptyStateLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/spinnerSort"
+        app:layout_constraintBottom_toTopOf="@id/btnDeleteCategory"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@android:drawable/ic_menu_my_calendar"
+            app:tint="#CCCCCC"
+            android:contentDescription="No Tasks" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No tasks here yet!"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#9E9E9E"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enjoy your free time 🎉"
+            android:textSize="14sp"
+            android:textColor="#9E9E9E"
+            android:layout_marginTop="4dp"/>
+
+    </LinearLayout>
+
     <Button
         android:id="@+id/btnDeleteCategory"
         android:layout_width="0dp"

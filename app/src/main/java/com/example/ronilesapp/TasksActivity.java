@@ -7,7 +7,6 @@ import android.widget.Toast;
 import android.app.AlertDialog;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -48,7 +47,6 @@ public class TasksActivity extends BaseActivity {
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
         applyInitialTheme(sharedPreferences.getString("theme", "Theme.PinkBrown"));
 
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tasks);
 
@@ -59,7 +57,7 @@ public class TasksActivity extends BaseActivity {
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigation);
 
-        // ✅ חדש — סימון שהמסך הנוכחי הוא HOME
+        // ✅ סימון שהמסך הנוכחי הוא HOME
         bottomNavigationView.setSelectedItemId(R.id.nav_home);
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
@@ -71,14 +69,11 @@ public class TasksActivity extends BaseActivity {
                 startActivity(new Intent(TasksActivity.this, SettingsActivity.class));
                 return true;
             } else if (id == R.id.nav_home) {
-                // כבר כאן — לא צריך לעשות כלום
                 return true;
             } else {
                 return false;
             }
         });
-
-
 
         addTaskLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -90,8 +85,9 @@ public class TasksActivity extends BaseActivity {
         );
 
         fabAddTask.setOnClickListener(v -> {
+            // בדיקה גם בלחיצה
             if (!NetworkUtil.isConnected(this)) {
-                Toast.makeText(this, "No Internet Connection.", Toast.LENGTH_LONG).show();
+                checkInternet(); // שימוש בפונקציה החדשה שמציגה דיאלוג יפה
                 return;
             }
             startActivity(new Intent(TasksActivity.this, Item_TaskActivity.class));
@@ -110,8 +106,14 @@ public class TasksActivity extends BaseActivity {
         };
         sharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
 
-        // החלת צבעים ראשונית
         applyThemeColors();
+    }
+
+    // --- הוספנו את onStart כדי לבדוק אינטרנט בכניסה ---
+    @Override
+    protected void onStart() {
+        super.onStart();
+        checkInternet();
     }
 
     @Override
@@ -122,23 +124,26 @@ public class TasksActivity extends BaseActivity {
         }
     }
 
-    private void applyInitialTheme(String themeName) {
-        switch (themeName) {
-            case "pink_brown":
-                setTheme(R.style.Theme_PinkBrown);
-                break;
-            case "blue_white":
-                setTheme(R.style.Theme_BlueWhite);
-                break;
-            case "green_white":
-                setTheme(R.style.Theme_GreenWhite);
-                break;
-            default:
-                setTheme(R.style.Theme_PinkBrown);
-                break;
+    // --- הפונקציה החדשה שמציגה הודעה אם אין אינטרנט ---
+    private void checkInternet() {
+        if (!NetworkUtil.isConnected(this)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("No Internet Connection")
+                    .setMessage("Please check your internet connection to view and manage tasks.")
+                    .setPositiveButton("OK", null)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
         }
     }
 
+    private void applyInitialTheme(String themeName) {
+        switch (themeName) {
+            case "pink_brown": setTheme(R.style.Theme_PinkBrown); break;
+            case "blue_white": setTheme(R.style.Theme_BlueWhite); break;
+            case "green_white": setTheme(R.style.Theme_GreenWhite); break;
+            default: setTheme(R.style.Theme_PinkBrown); break;
+        }
+    }
 
     private void applyThemeColors() {
         String theme = sharedPreferences.getString("theme", "pink_brown");
@@ -179,23 +184,17 @@ public class TasksActivity extends BaseActivity {
                 break;
         }
 
-        // רקע
         findViewById(R.id.viewPagerTasks).setBackgroundColor(backgroundColor);
-
-        // FAB וכפתור הוספת קטגוריה
         fabAddTask.setBackgroundTintList(android.content.res.ColorStateList.valueOf(fabColor));
         btnAddCategory.setBackgroundColor(buttonColor);
         btnAddCategory.setTextColor(textColor);
-
-        // TabLayout
         tabLayoutCategories.setSelectedTabIndicatorColor(tabSelectedColor);
         tabLayoutCategories.setTabTextColors(tabUnselectedColor, tabSelectedColor);
     }
 
-
-
     void loadCategoriesAndTasks() {
         if (!NetworkUtil.isConnected(this)) {
+            // כבר יש בדיקה ב-onStart, אבל ליתר ביטחון נשאיר כאן Toast
             Toast.makeText(this, "No Internet Connection.", Toast.LENGTH_LONG).show();
             return;
         }
@@ -211,7 +210,6 @@ public class TasksActivity extends BaseActivity {
                 }
 
                 categoryList.add(0, "All Tasks");
-
 
                 for (String cat : categoryList) {
                     fragments.add(CategoryTasksFragment.newInstance(cat));
@@ -247,8 +245,12 @@ public class TasksActivity extends BaseActivity {
     }
 
     private void saveNewCategory(String categoryName) {
-        Category category = new Category(categoryName);
+        if (!NetworkUtil.isConnected(this)) {
+            checkInternet();
+            return;
+        }
 
+        Category category = new Category(categoryName);
         FBRef.getUserCategoriesRef().document(categoryName)
                 .set(category)
                 .addOnSuccessListener(aVoid -> {
@@ -259,10 +261,7 @@ public class TasksActivity extends BaseActivity {
     }
 
     private void updateTasksMonthAndTime() {
-        if (!NetworkUtil.isConnected(this)) {
-            Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show();
-            return;
-        }
+        if (!NetworkUtil.isConnected(this)) return;
 
         FBRef.getUserTasksRef().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -283,14 +282,9 @@ public class TasksActivity extends BaseActivity {
                     }
 
                     if (needsUpdate) {
-                        FBRef.getUserTasksRef().document(doc.getId())
-                                .set(t)
-                                .addOnSuccessListener(aVoid -> System.out.println("Task updated: " + t.getTitle()))
-                                .addOnFailureListener(e -> System.out.println("Error updating task: " + t.getTitle()));
+                        FBRef.getUserTasksRef().document(doc.getId()).set(t);
                     }
                 }
-            } else {
-                System.out.println("Error fetching tasks for update");
             }
         });
     }
