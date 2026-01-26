@@ -10,7 +10,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout; // חשוב!
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 import android.text.Editable;
@@ -20,6 +20,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
@@ -34,7 +36,6 @@ public class CategoryTasksFragment extends Fragment {
     private String category;
 
     private RecyclerView recyclerView;
-    // המשתנה של המצב הריק
     private LinearLayout emptyStateLayout;
 
     private TasksAdapter adapter;
@@ -67,12 +68,10 @@ public class CategoryTasksFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        // 1. קבלת ה-Theme מההגדרות
         SharedPreferences prefs = getActivity()
                 .getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
         String theme = prefs.getString("theme", "pink_brown");
 
-        // בחירת ה-Style ל-Inflater
         int themeResId;
         switch (theme) {
             case "blue_white": themeResId = R.style.Theme_BlueWhite; break;
@@ -86,26 +85,16 @@ public class CategoryTasksFragment extends Fragment {
 
         View view = themedInflater.inflate(R.layout.fragment_category_tasks, container, false);
 
-        // --- תיקון: החלת צבע הרקע באופן ידני ---
         int backgroundColor;
         switch (theme) {
-            case "blue_white":
-                backgroundColor = getResources().getColor(R.color.blue_background);
-                break;
-            case "green_white":
-                backgroundColor = getResources().getColor(R.color.green_background);
-                break;
-            default: // pink_brown
-                backgroundColor = getResources().getColor(R.color.pink_background);
-                break;
+            case "blue_white": backgroundColor = getResources().getColor(R.color.blue_background); break;
+            case "green_white": backgroundColor = getResources().getColor(R.color.green_background); break;
+            default: backgroundColor = getResources().getColor(R.color.pink_background); break;
         }
         view.setBackgroundColor(backgroundColor);
-        // ---------------------------------------
 
         recyclerView = view.findViewById(R.id.recyclerViewCategoryTasks);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-
-        // חיבור ה-Empty State
         emptyStateLayout = view.findViewById(R.id.emptyStateLayout);
 
         searchEditText = view.findViewById(R.id.editTextSearch);
@@ -115,14 +104,25 @@ public class CategoryTasksFragment extends Fragment {
             @Override public void afterTextChanged(Editable s) { }
         });
 
+        // --- תיקון הלוגיקה: עדכון במקום מחיקה ---
         adapter = new TasksAdapter(displayedTaskList,
                 (task, isChecked) -> {
                     if (isChecked) {
                         String docId = task.getId() != null ? task.getId() : task.getTitle();
-                        FBRef.getUserTasksRef().document(docId).delete()
+
+                        // 1. במקום למחוק, אנחנו מעדכנים ל-Done = true
+                        FBRef.getUserTasksRef().document(docId).update("done", true)
                                 .addOnSuccessListener(aVoid -> {
                                     NotificationHelper.cancelNotification(getContext(), docId);
-                                    Toast.makeText(getContext(), "✅ Task Complete!", Toast.LENGTH_SHORT).show();
+
+                                    // 2. Snackbar עם Undo
+                                    Snackbar.make(recyclerView, "Task Completed", 3500)
+                                            .setAction("UNDO", v -> {
+                                                // 3. אם התחרטנו - מחזירים ל-Done = false
+                                                FBRef.getUserTasksRef().document(docId).update("done", false);
+                                            })
+                                            .setActionTextColor(getResources().getColor(android.R.color.holo_orange_light))
+                                            .show();
                                 });
                     }
                 },
@@ -202,6 +202,12 @@ public class CategoryTasksFragment extends Fragment {
 
                     if (!category.equals("All Tasks") && !taskObj.getCategory().equals(category)) continue;
 
+                    // --- השינוי החשוב: לא להציג משימות שכבר בוצעו ---
+                    if (taskObj.isDone()) {
+                        continue; // מדלגים על המשימה הזו, היא לא תיכנס לרשימה
+                    }
+                    // --------------------------------------------------
+
                     taskList.add(taskObj);
                 }
 
@@ -214,14 +220,11 @@ public class CategoryTasksFragment extends Fragment {
                 }
 
                 sortTasks(currentSortOption);
-
-                // עדכון המצב הריק
                 updateEmptyState();
             }
         });
     }
 
-    // פונקציה לבדוק אם הרשימה ריקה ולהציג את הציור
     private void updateEmptyState() {
         if (displayedTaskList.isEmpty()) {
             emptyStateLayout.setVisibility(View.VISIBLE);

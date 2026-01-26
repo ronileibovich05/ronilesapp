@@ -5,74 +5,126 @@
     android:id="@+id/rootLayoutSettings"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
     android:background="#FBEFF1">
 
-    <!-- תוכן ההגדרות -->
-    <LinearLayout
-        android:id="@+id/layoutSettingsContent"
-        android:orientation="vertical"
-        android:layout_width="match_parent"
+    <ScrollView
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:gravity="center"
-        android:layout_gravity="center"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <TextView
-            android:text="Notifications"
-            android:textSize="18sp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-        <Switch
-            android:id="@+id/switchNotifications"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-        <TextView
-            android:text="Theme"
-            android:textSize="18sp"
-            android:layout_marginTop="24dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-        <RadioGroup
-            android:id="@+id/radioGroupTheme"
+        <LinearLayout
+            android:id="@+id/layoutSettingsContent"
             android:orientation="vertical"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="24dp"
+            android:gravity="center_horizontal">
 
-            <RadioButton
-                android:id="@+id/rbPinkBrown"
-                android:text="Pink / Brown"
+            <TextView
+                android:text="Settings"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="32dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:text="Enable Notifications"
+                    android:textSize="18sp"
+                    android:textColor="#333333"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"/>
+
+                <Switch
+                    android:id="@+id/switchNotifications"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <TextView
+                android:text="Theme"
+                android:textSize="18sp"
+                android:textColor="#757575"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <RadioGroup
+                android:id="@+id/radioGroupTheme"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp">
+
+                <RadioButton
+                    android:id="@+id/rbPinkBrown"
+                    android:text="Pink / Brown"
+                    android:textSize="16sp"
+                    android:padding="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <RadioButton
+                    android:id="@+id/rbBlueWhite"
+                    android:text="Blue / White"
+                    android:textSize="16sp"
+                    android:padding="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+
+                <RadioButton
+                    android:id="@+id/rbGreenWhite"
+                    android:text="Green / White"
+                    android:textSize="16sp"
+                    android:padding="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </RadioGroup>
+
+            <Button
+                android:id="@+id/btnChangePassword"
+                android:text="Change Password"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:backgroundTint="#FFFFFF"
+                android:textColor="#333333"
+                android:layout_marginBottom="16dp"/>
+
+            <Button
+                android:id="@+id/btnShareApp"
+                android:text="Share App"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:backgroundTint="#FFFFFF"
+                android:textColor="#333333"
+                android:drawableEnd="@android:drawable/ic_menu_share"
+                android:paddingEnd="16dp"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView
+                android:id="@+id/tvVersion"
+                android:text="Version 1.0"
+                android:textSize="14sp"
+                android:textColor="#BDBDBD"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
-            <RadioButton
-                android:id="@+id/rbBlueWhite"
-                android:text="Blue / White"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+        </LinearLayout>
+    </ScrollView>
 
-            <RadioButton
-                android:id="@+id/rbGreenWhite"
-                android:text="Green / White"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-        </RadioGroup>
-
-        <Button
-            android:id="@+id/btnLogout"
-            android:text="Log Out"
-            android:layout_marginTop="32dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-    </LinearLayout>
-
-    <!-- סרגל כלים תחתון -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="0dp"

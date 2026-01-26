@@ -41,13 +41,11 @@ public class Item_TaskActivity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
         applyInitialTheme(sharedPreferences.getString("theme", "pink_brown"));
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_item_task);
-
 
         editTaskTitle = findViewById(R.id.editTextTaskTitle);
         editTaskDescription = findViewById(R.id.editTextTaskDescription);
@@ -57,13 +55,14 @@ public class Item_TaskActivity extends BaseActivity {
         btnAddCategory = findViewById(R.id.btnAddCategory);
         btnCancelTask = findViewById(R.id.buttonCancelTask);
 
+        timePicker.setIs24HourView(true); // המלצה: להציג שעון 24 שעות
 
         categoryAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoryList);
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(categoryAdapter);
 
         if (getIntent().hasExtra("taskId")) {
-            taskIdToEdit = getIntent().getStringExtra("taskId"); // שומרים למשתנה המחלקה
+            taskIdToEdit = getIntent().getStringExtra("taskId");
 
             editTaskTitle.setText(getIntent().getStringExtra("title"));
             editTaskDescription.setText(getIntent().getStringExtra("desc"));
@@ -84,7 +83,7 @@ public class Item_TaskActivity extends BaseActivity {
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
 
         btnCancelTask.setOnClickListener(v -> {
-            finish(); //
+            finish();
         });
 
         themeListener = (prefs, key) -> {
@@ -93,7 +92,6 @@ public class Item_TaskActivity extends BaseActivity {
             }
         };
         sharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
-
 
         applyThemeColors();
     }
@@ -142,7 +140,9 @@ public class Item_TaskActivity extends BaseActivity {
                 break;
         }
 
-        findViewById(android.R.id.content).setBackgroundColor(backgroundColor);
+        View contentView = findViewById(android.R.id.content);
+        if (contentView != null) contentView.setBackgroundColor(backgroundColor);
+
         btnAddCategory.setBackgroundColor(buttonColor);
         btnAddCategory.setTextColor(textColor);
         btnCancelTask.setBackgroundColor(buttonColor);
@@ -161,7 +161,6 @@ public class Item_TaskActivity extends BaseActivity {
                 }
                 categoryAdapter.notifyDataSetChanged();
 
-                // אם אנחנו בעריכה, ננסה לבחור את הקטגוריה הנכונה
                 if (taskIdToEdit != null) {
                     String currentCat = getIntent().getStringExtra("category");
                     if (currentCat != null) {
@@ -204,12 +203,13 @@ public class Item_TaskActivity extends BaseActivity {
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed Adding Category", Toast.LENGTH_SHORT).show());
     }
 
+    // --- הפונקציה המעודכנת ---
     public void saveTask(View view) {
         String title = editTaskTitle.getText().toString().trim();
         String description = editTaskDescription.getText().toString().trim();
 
         int day = datePicker.getDayOfMonth();
-        int month = datePicker.getMonth(); // 0-11
+        int month = datePicker.getMonth(); // מחזיר 0-11
         int year = datePicker.getYear();
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
@@ -223,23 +223,32 @@ public class Item_TaskActivity extends BaseActivity {
             return;
         }
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(year, month, day, hour, minute, 0);
-        long taskTimeInMillis = calendar.getTimeInMillis();
-
         String finalTaskId;
-
         if (taskIdToEdit != null) {
             finalTaskId = taskIdToEdit;
         } else {
             finalTaskId = FBRef.getUserTasksRef().document().getId();
         }
 
+        // שימי לב: month + 1 כי ב-Task אנחנו שומרים 1-12
         Task newTask = new Task(finalTaskId, title, description, day, month + 1, year, hour, minute, category, false);
 
         FBRef.getUserTasksRef().document(finalTaskId).set(newTask)
                 .addOnSuccessListener(aVoid -> {
-                    NotificationHelper.scheduleNotification(this, taskTimeInMillis, title, finalTaskId);
+
+                    // --- כאן השינוי הגדול לחיבור עם NotificationHelper החדש ---
+                    // אנחנו שולחים את הזמן המפורק, כדי שה-Helper יוכל לבדוק אם זה בעבר
+                    NotificationHelper.scheduleNotification(
+                            this,
+                            finalTaskId,
+                            title,
+                            year,
+                            month + 1, // ה-Helper שלנו מצפה לחודש 1-12
+                            day,
+                            hour,
+                            minute
+                    );
+                    // -------------------------------------------------------------
 
                     String msg = (taskIdToEdit != null) ? "Task Updated!" : "Task Created!";
                     Toast.makeText(Item_TaskActivity.this, msg, Toast.LENGTH_SHORT).show();

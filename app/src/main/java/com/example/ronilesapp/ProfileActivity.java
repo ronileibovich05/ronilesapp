@@ -5,11 +5,12 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar; // חדש
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.app.AlertDialog;
 
@@ -18,15 +19,22 @@ import androidx.annotation.Nullable;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.QueryDocumentSnapshot; // חדש
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class ProfileActivity extends BaseActivity {
 
+    // משתנים קיימים
     private ImageView profileImageView;
     private TextView tvFirstName, tvLastName, tvEmail;
     private BottomNavigationView bottomNavigation;
     private Button btnEditProfile;
     private ScrollView scrollProfile;
+
+    // --- משתנים חדשים לסטטיסטיקה ול-Logout ---
+    private ProgressBar progressBarStats;
+    private TextView tvPercentage, tvTotalTasks, tvCompletedTasks, tvPendingTasks;
+    private Button btnLogout;
 
     private SharedPreferences sharedPreferences;
     private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
@@ -38,6 +46,7 @@ public class ProfileActivity extends BaseActivity {
 
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
 
+        // חיבור ה-Views הקיימים
         profileImageView = findViewById(R.id.imageviewProfile);
         tvFirstName = findViewById(R.id.tvFirstName);
         tvLastName = findViewById(R.id.tvLastName);
@@ -46,6 +55,15 @@ public class ProfileActivity extends BaseActivity {
         btnEditProfile = findViewById(R.id.btnEditProfile);
         scrollProfile = findViewById(R.id.scrollProfile);
 
+        // --- חיבור ה-Views החדשים (סטטיסטיקה) ---
+        progressBarStats = findViewById(R.id.progressBarStats);
+        tvPercentage = findViewById(R.id.tvPercentage);
+        tvTotalTasks = findViewById(R.id.tvTotalTasks);
+        tvCompletedTasks = findViewById(R.id.tvCompletedTasks);
+        tvPendingTasks = findViewById(R.id.tvPendingTasks);
+        btnLogout = findViewById(R.id.btnLogout);
+
+        // הגדרת הניווט התחתון
         bottomNavigation.setSelectedItemId(R.id.nav_profile);
         bottomNavigation.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -63,9 +81,24 @@ public class ProfileActivity extends BaseActivity {
             return false;
         });
 
+        // טעינת פרופיל משתמש
         loadUserProfile();
+
+        // --- חישוב סטטיסטיקות ---
+        calculateStats();
+
+        // מאזינים לכפתורים
         btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
 
+        // כפתור התנתקות
+        btnLogout.setOnClickListener(v -> {
+            FirebaseAuth.getInstance().signOut();
+            Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        });
+
+        // החלת ערכת נושא
         applyThemeColors();
 
         themeListener = (prefs, key) -> {
@@ -77,11 +110,65 @@ public class ProfileActivity extends BaseActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        // רענון הסטטיסטיקה בכל פעם שחוזרים למסך (למשל אם מחקו משימה וחזרו)
+        calculateStats();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         if (sharedPreferences != null && themeListener != null) {
             sharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
+    }
+
+    private void calculateStats() {
+        if (!NetworkUtil.isConnected(this)) return;
+
+        FBRef.getUserTasksRef().get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                int total = 0;
+                int done = 0;
+
+                // 1. קובעים את נקודת ההתחלה של "היום" (00:00 בבוקר)
+                java.util.Calendar calendar = java.util.Calendar.getInstance();
+                calendar.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                calendar.set(java.util.Calendar.MINUTE, 0);
+                calendar.set(java.util.Calendar.SECOND, 0);
+                calendar.set(java.util.Calendar.MILLISECOND, 0);
+
+                long startOfDay = calendar.getTimeInMillis();
+
+                for (QueryDocumentSnapshot doc : task.getResult()) {
+                    Task t = doc.toObject(Task.class);
+
+                    // 2. בדיקה אמינה יותר: האם המשימה נוצרה היום?
+                    // (בודק לפי זמן יצירה - creationTime)
+                    if (t.getCreationTime() >= startOfDay) {
+                        total++;
+                        if (t.isDone()) {
+                            done++;
+                        }
+                    }
+                }
+
+                int pending = total - done;
+                int progress = (total == 0) ? 0 : (done * 100 / total);
+
+                // עדכון המסך
+                tvTotalTasks.setText(String.valueOf(total));
+                tvCompletedTasks.setText(String.valueOf(done));
+                tvPendingTasks.setText(String.valueOf(pending));
+
+                progressBarStats.setProgress(progress);
+                tvPercentage.setText(progress + "%");
+
+            } else {
+                Toast.makeText(this, "Failed to load stats", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void applyThemeColors() {
@@ -116,8 +203,9 @@ public class ProfileActivity extends BaseActivity {
         tvLastName.setTextColor(textColor);
         tvEmail.setTextColor(textColor);
         btnEditProfile.setBackgroundColor(buttonColor);
+        // כפתור ההתנתקות נשאר אדום בדרך כלל, אבל אם תרצי לשנות גם אותו:
+        // btnLogout.setBackgroundColor(buttonColor);
     }
-
 
     private void loadUserProfile() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
@@ -144,11 +232,7 @@ public class ProfileActivity extends BaseActivity {
                     } else {
                         profileImageView.setImageResource(R.drawable.ic_default_profile);
                     }
-                } else {
-                    Toast.makeText(this, "No user data found", Toast.LENGTH_SHORT).show();
                 }
-            } else {
-                Toast.makeText(this, "Error loading profile", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -207,4 +291,4 @@ public class ProfileActivity extends BaseActivity {
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error updating user profile", Toast.LENGTH_SHORT).show());
     }
-    }
+}
