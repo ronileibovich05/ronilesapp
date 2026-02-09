@@ -103,6 +103,17 @@
                 android:textColor="#333333"
                 android:layout_marginBottom="16dp"/>
 
+
+            <Button
+                android:id="@+id/btnAdminPanel"
+                android:text="Admin Panel"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:backgroundTint="#D32F2F"
+                android:textColor="#FFFFFF"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp"/>
+
             <Button
                 android:id="@+id/btnShareApp"
                 android:text="Share App"

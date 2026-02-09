@@ -210,22 +210,31 @@ public class RegisterActivity extends BaseActivity {
 
     private void saveUserToFirestore(String uid, String firstName, String lastName,
                                      String email, boolean notifications, String imageUrl) {
-        Map<String, Object> userMap = new HashMap<>();
-        userMap.put("firstName", firstName);
-        userMap.put("lastName", lastName);
-        userMap.put("email", email);
-        userMap.put("notifications", notifications);
-        if (imageUrl != null) userMap.put("profileImageUrl", imageUrl);
+
+        // יצירת אובייקט User מסודר (כולל uid ו-isAdmin)
+        // שים לב: imageUrl יכול להיות null, זה בסדר
+        // הבנאי: uid, firstName, lastName, email, notifications, profileImageUrl, isAdmin
+        User newUser = new User(uid, firstName, lastName, email, notifications, imageUrl, false);
+
+        // שימוש ב-refUsers (שהוא כנראה קיצור ל-Firestore collection "Users" שיש לך ב-FBRef)
+        // אם FBRef.refUsers לא מוגדר אצלך כ-CollectionReference, תשתמשי ב:
+        // FirebaseFirestore.getInstance().collection("Users")
 
         refUsers.document(uid)
-                .set(userMap)
+                .set(newUser) // שמירת האובייקט כולו
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(RegisterActivity.this, "הרשמה הצליחה!", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(RegisterActivity.this, TasksActivity.class));
+                    // מעבר למסך הראשי
+                    Intent intent = new Intent(RegisterActivity.this, TasksActivity.class);
+                    // מנקה את ההיסטוריה כדי שהמשתמש לא יוכל לחזור למסך ההרשמה עם Back
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
                     finish();
                 })
-                .addOnFailureListener(e -> Toast.makeText(RegisterActivity.this,
-                        "שמירת המשתמש נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                .addOnFailureListener(e -> {
+                    Toast.makeText(RegisterActivity.this,
+                            "שמירת המשתמש נכשלה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
     }
 
     public void goToLogin(View view) {

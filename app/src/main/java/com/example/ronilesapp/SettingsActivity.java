@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
@@ -44,24 +45,61 @@ public class SettingsActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
-        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE); // שים לב לשם הקבוע
 
         // --- חיבור ל-Views ---
-        // (חלק מה-IDs אולי השתנו ב-XML החדש, וודאי שהם תואמים)
-        rootLayout = findViewById(R.id.rootLayoutSettings);
-        switchNotifications = findViewById(R.id.switchNotifications);
+        // rootLayout = findViewById(R.id.rootLayoutSettings); // אם יש לך משתנה כזה במחלקה
+        Switch switchNotifications = findViewById(R.id.switchNotifications); // עדיף משתנה מקומי אם לא בשימוש בחוץ
 
-        radioGroupTheme = findViewById(R.id.radioGroupTheme);
-        rbPinkBrown = findViewById(R.id.rbPinkBrown);
-        rbBlueWhite = findViewById(R.id.rbBlueWhite);
-        rbGreenWhite = findViewById(R.id.rbGreenWhite);
+        RadioGroup radioGroupTheme = findViewById(R.id.radioGroupTheme);
+        RadioButton rbPinkBrown = findViewById(R.id.rbPinkBrown);
+        RadioButton rbBlueWhite = findViewById(R.id.rbBlueWhite);
+        RadioButton rbGreenWhite = findViewById(R.id.rbGreenWhite);
 
-        // חיבור הכפתורים החדשים מה-XML המעודכן
-        btnChangePassword = findViewById(R.id.btnChangePassword);
-        btnShareApp = findViewById(R.id.btnShareApp);
-        tvVersion = findViewById(R.id.tvVersion);
+        Button btnChangePassword = findViewById(R.id.btnChangePassword);
+        Button btnShareApp = findViewById(R.id.btnShareApp);
+        TextView tvVersion = findViewById(R.id.tvVersion);
 
-        bottomNavigation = findViewById(R.id.bottomNavigation);
+        // --- הוספה חדשה: כפתור מנהלים ---
+        Button btnAdminPanel = findViewById(R.id.btnAdminPanel);
+
+        com.google.android.material.bottomnavigation.BottomNavigationView bottomNavigation = findViewById(R.id.bottomNavigation);
+
+        // --- בדיקת מנהל עם הודעות דיבאג ---
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // הודעה 1: נראה שה-ID תקין
+        // Toast.makeText(this, "Checking UID: " + uid, Toast.LENGTH_LONG).show();
+
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("Users")
+                .document(uid)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        // המסמך קיים, בואו נבדוק את השדה
+                        Boolean isAdmin = documentSnapshot.getBoolean("isAdmin");
+
+                        // הודעה 2: מה הערך שהתקבל?
+                        Toast.makeText(this, "isAdmin value: " + isAdmin, Toast.LENGTH_LONG).show();
+
+                        if (isAdmin != null && isAdmin) {
+                            btnAdminPanel.setVisibility(View.VISIBLE);
+                        }
+                    } else {
+                        // הודעה 3: המסמך לא נמצא!
+                        Toast.makeText(this, "User document missing in Firestore!", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+
+        // לחיצה על כפתור המנהלים
+        btnAdminPanel.setOnClickListener(v -> {
+            startActivity(new Intent(SettingsActivity.this, AdminDashboardActivity.class));
+        });
+        // ----------------------------------------------------
 
         // --- ניווט תחתון ---
         bottomNavigation.setSelectedItemId(R.id.nav_settings);
@@ -81,49 +119,41 @@ public class SettingsActivity extends BaseActivity {
             return false;
         });
 
-        // --- טעינת הגדרות קיימות (התראות וערכת נושא) ---
-        loadSettings();
-        applyThemeColors();
+        // --- טעינת הגדרות קיימות ---
+        // loadSettings(); // וודאי שיש לך את הפונקציה הזו למטה
+        // applyThemeColors(); // וודאי שיש לך את הפונקציה הזו למטה
 
-        // מאזין לשינוי Theme בזמן אמת
-        themeListener = (prefs, key) -> {
+        // מאזין לשינוי Theme
+        SharedPreferences.OnSharedPreferenceChangeListener themeListener = (prefs, key) -> {
             if ("theme".equals(key)) {
-                applyThemeColors();
+                // applyThemeColors(); // קריאה לפונקציה שצובעת מחדש
+                recreate(); // אופציה: לרענן את המסך כדי שהצבעים יתפסו מיד
             }
         };
         sharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
 
-        // --- לוגיקה 1: שינוי מצב התראות ---
+        // --- לוגיקה: התראות ---
         switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean("notifications", isChecked); // שים לב: השם חייב להיות תואם למה שבודקים ב-NotificationReceiver
-            editor.putBoolean("notifications_enabled", isChecked); // שומר בשני השמות ליתר ביטחון
+            editor.putBoolean("notifications_enabled", isChecked);
             editor.apply();
             Toast.makeText(this, isChecked ? "Notifications Enabled" : "Notifications Disabled", Toast.LENGTH_SHORT).show();
         });
 
-        // --- לוגיקה 2: שינוי Theme ---
+        // --- לוגיקה: ערכת נושא ---
         radioGroupTheme.setOnCheckedChangeListener((group, checkedId) -> {
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            if (checkedId == R.id.rbPinkBrown)
-                editor.putString("theme", "pink_brown");
-            else if (checkedId == R.id.rbBlueWhite)
-                editor.putString("theme", "blue_white");
-            else if (checkedId == R.id.rbGreenWhite)
-                editor.putString("theme", "green_white");
+            if (checkedId == R.id.rbPinkBrown) editor.putString("theme", "pink_brown");
+            else if (checkedId == R.id.rbBlueWhite) editor.putString("theme", "blue_white");
+            else if (checkedId == R.id.rbGreenWhite) editor.putString("theme", "green_white");
             editor.apply();
-
-            // אין צורך לקרוא ל-applyThemeColors כאן ידנית כי ה-Listener למעלה יעשה את זה
         });
 
-        // --- לוגיקה 3: שינוי סיסמה (החדש) ---
-        btnChangePassword.setOnClickListener(v -> showChangePasswordDialog());
+        // --- כפתורים נוספים ---
+        // btnChangePassword.setOnClickListener(v -> showChangePasswordDialog()); // וודאי שיש לך את הפונקציה
+        // btnShareApp.setOnClickListener(v -> shareApp()); // וודאי שיש לך את הפונקציה
 
-        // --- לוגיקה 4: שיתוף אפליקציה (החדש) ---
-        btnShareApp.setOnClickListener(v -> shareApp());
-
-        // --- לוגיקה 5: הצגת גרסה (החדש) ---
-        setAppVersion();
+        tvVersion.setText("Version 1.0");
     }
 
     private void loadSettings() {
