@@ -1,6 +1,7 @@
 package com.example.ronilesapp;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -12,7 +13,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -23,14 +23,15 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AdminDashboardActivity extends AppCompatActivity {
+public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseActivity כדי לקבל את ה-Theme
 
     private ConstraintLayout rootLayout;
     private TextView tvTitle, tvSubtitle;
     private RecyclerView rvUsers;
-    private InternalUserAdapter userAdapter; // שימוש באדפטר הפנימי
+    private InternalUserAdapter userAdapter;
     private List<User> userList;
     private SharedPreferences sharedPreferences;
+    private SharedPreferences.OnSharedPreferenceChangeListener themeListener; // המאזין לשינויים
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,68 +49,81 @@ public class AdminDashboardActivity extends AppCompatActivity {
         rvUsers.setLayoutManager(new LinearLayoutManager(this));
 
         userList = new ArrayList<>();
-        // כאן אנחנו יוצרים את האדפטר הפנימי
         userAdapter = new InternalUserAdapter(this, userList);
         rvUsers.setAdapter(userAdapter);
 
-        // 3. טעינת המשתמשים מ-Firestore
+        // 3. טעינת המשתמשים
         loadUsersFromFirestore();
 
-        // 4. עיצוב
+        // 4. ניהול עיצוב וצבעים
         sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
-        String theme = sharedPreferences.getString("theme", "pink_brown");
-        applyThemeColors(theme);
+
+        // הוספת המאזין שגורם למסך להתרענן מיד כשמשנים צבע בהגדרות
+        themeListener = (prefs, key) -> {
+            if ("theme".equals(key)) {
+                recreate(); // פקודת הקסם שמרעננת את המסך
+            }
+        };
+        sharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
+
+        applyThemeColors();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // הסרת המאזין כדי למנוע נזילות זיכרון
+        if (sharedPreferences != null && themeListener != null) {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
+        }
     }
 
     private void loadUsersFromFirestore() {
-        FirebaseFirestore.getInstance().collection("Users")
-                .get()
+        Utils.refUsers.get() // שימוש ב-Utils המאוחד שלנו!
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     userList.clear();
                     for (DocumentSnapshot document : queryDocumentSnapshots) {
                         User user = document.toObject(User.class);
                         if (user != null) {
                             user.setUid(document.getId());
-                            // תיקון קטן: אם אין תמונה, נמנע קריסה אח"כ
                             if (user.getProfileImageUrl() == null) user.setProfileImageUrl("");
                             userList.add(user);
                         }
                     }
                     userAdapter.notifyDataSetChanged();
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "שגיאה בטעינת משתמשים", Toast.LENGTH_SHORT).show();
-                });
+                .addOnFailureListener(e -> Toast.makeText(this, "Error loading users", Toast.LENGTH_SHORT).show());
     }
 
-    private void applyThemeColors(String theme) {
-        // ... (אותו קוד צבעים כמו מקודם)
+    private void applyThemeColors() {
+        String theme = sharedPreferences.getString("theme", "pink_brown");
+        int backgroundColor, titleColor, subtitleColor;
+
         switch (theme) {
             case "blue_white":
-                rootLayout.setBackgroundColor(0xFFE3F2FD);
-                tvTitle.setTextColor(0xFF1565C0);
-                tvSubtitle.setTextColor(0xFF424242);
+                backgroundColor = getResources().getColor(R.color.blue_background);
+                titleColor = getResources().getColor(R.color.blue_primary);
+                subtitleColor = getResources().getColor(android.R.color.black);
                 break;
             case "green_white":
-                rootLayout.setBackgroundColor(0xFFE8F5E9);
-                tvTitle.setTextColor(0xFF2E7D32);
-                tvSubtitle.setTextColor(0xFF424242);
+                backgroundColor = getResources().getColor(R.color.green_background);
+                titleColor = getResources().getColor(R.color.green_primary);
+                subtitleColor = getResources().getColor(android.R.color.black);
                 break;
-            case "pink_brown":
-            default:
-                rootLayout.setBackgroundColor(0xFFFBEFF1);
-                tvTitle.setTextColor(0xFFD32F2F);
-                tvSubtitle.setTextColor(0xFF5D4037);
+            default: // pink_brown
+                backgroundColor = getResources().getColor(R.color.pink_background);
+                titleColor = getResources().getColor(R.color.pink_primary);
+                subtitleColor = getResources().getColor(R.color.brown);
                 break;
         }
+
+        rootLayout.setBackgroundColor(backgroundColor);
+        tvTitle.setTextColor(titleColor);
+        tvSubtitle.setTextColor(subtitleColor);
     }
 
-    // =================================================================
-    // כאן מתחיל האדפטר הפנימי (Inner Class) - במקום קובץ נפרד!
-    // =================================================================
-
+    // --- האדפטר הפנימי נשאר דומה, רק וידאתי שהוא משתמש ב-Utils למחיקה ---
     public class InternalUserAdapter extends RecyclerView.Adapter<InternalUserAdapter.UserViewHolder> {
-
         private Context context;
         private List<User> list;
 
@@ -121,7 +135,6 @@ public class AdminDashboardActivity extends AppCompatActivity {
         @NonNull
         @Override
         public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // עדיין משתמשים ב-item_user.xml שיצרת
             View view = LayoutInflater.from(context).inflate(R.layout.item_user, parent, false);
             return new UserViewHolder(view);
         }
@@ -129,24 +142,14 @@ public class AdminDashboardActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
             User user = list.get(position);
-
-            String fullName = user.getFirstName() + " " + user.getLastName();
-            holder.tvName.setText(fullName);
+            holder.tvName.setText(user.getFirstName() + " " + user.getLastName());
             holder.tvEmail.setText(user.getEmail());
-
-            // לחיצה על כפתור מחיקה
-            holder.btnDelete.setOnClickListener(v -> {
-                // קריאה לפונקציה שנמצאת בתוך ה-Activity הראשית
-                deleteUser(user, position);
-            });
+            holder.btnDelete.setOnClickListener(v -> deleteUser(user, position));
         }
 
         @Override
-        public int getItemCount() {
-            return list.size();
-        }
+        public int getItemCount() { return list.size(); }
 
-        // ה-ViewHolder הפנימי
         public class UserViewHolder extends RecyclerView.ViewHolder {
             TextView tvName, tvEmail;
             ImageView imgIcon;
@@ -162,24 +165,18 @@ public class AdminDashboardActivity extends AppCompatActivity {
         }
     }
 
-    // פונקציית המחיקה (עכשיו היא חלק מה-Activity, אז קל לגשת אליה)
     private void deleteUser(User user, int position) {
         if (user.isAdmin()) {
-            Toast.makeText(this, "לא ניתן למחוק מנהל מערכת!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Cannot delete an Admin!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        FirebaseFirestore.getInstance().collection("Users")
-                .document(user.getUid())
-                .delete()
+        Utils.refUsers.document(user.getUid()).delete()
                 .addOnSuccessListener(aVoid -> {
                     userList.remove(position);
                     userAdapter.notifyItemRemoved(position);
-                    userAdapter.notifyItemRangeChanged(position, userList.size());
-                    Toast.makeText(this, "המשתמש נמחק", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "User Deleted", Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "שגיאה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 }

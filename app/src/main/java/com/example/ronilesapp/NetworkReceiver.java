@@ -8,7 +8,7 @@ import android.widget.Toast;
 public class NetworkReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (!NetworkUtil.isConnected(context)) {
+        if (!Utils.isConnected(context)) {
             Toast.makeText(context, "אין חיבור לאינטרנט", Toast.LENGTH_SHORT).show();
         }
     }

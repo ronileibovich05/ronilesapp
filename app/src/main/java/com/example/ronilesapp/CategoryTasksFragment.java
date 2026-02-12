@@ -111,7 +111,7 @@ public class CategoryTasksFragment extends Fragment {
                         String docId = task.getId() != null ? task.getId() : task.getTitle();
 
                         // 1. במקום למחוק, אנחנו מעדכנים ל-Done = true
-                        FBRef.getUserTasksRef().document(docId).update("done", true)
+                        Utils.getUserTasksRef().document(docId).update("done", true)
                                 .addOnSuccessListener(aVoid -> {
                                     NotificationHelper.cancelNotification(getContext(), docId);
 
@@ -119,7 +119,7 @@ public class CategoryTasksFragment extends Fragment {
                                     Snackbar.make(recyclerView, "Task Completed", 3500)
                                             .setAction("UNDO", v -> {
                                                 // 3. אם התחרטנו - מחזירים ל-Done = false
-                                                FBRef.getUserTasksRef().document(docId).update("done", false);
+                                                Utils.getUserTasksRef().document(docId).update("done", false);
                                             })
                                             .setActionTextColor(getResources().getColor(android.R.color.holo_orange_light))
                                             .show();
@@ -127,7 +127,7 @@ public class CategoryTasksFragment extends Fragment {
                     }
                 },
                 task -> {
-                    android.content.Intent intent = new android.content.Intent(getContext(), Item_TaskActivity.class);
+                    android.content.Intent intent = new android.content.Intent(getContext(), AddTaskActivity.class);
                     intent.putExtra("taskId", task.getId());
                     intent.putExtra("title", task.getTitle());
                     intent.putExtra("desc", task.getDescription());
@@ -182,9 +182,9 @@ public class CategoryTasksFragment extends Fragment {
     private void startListeningForTasks() {
         Query query;
         if (category == null || category.equals("All Tasks")) {
-            query = FBRef.getUserTasksRef();
+            query = Utils.getUserTasksRef();
         } else {
-            query = FBRef.getUserTasksRef().whereEqualTo("category", category);
+            query = Utils.getUserTasksRef().whereEqualTo("category", category);
         }
 
         firestoreListener = query.addSnapshotListener((value, error) -> {
@@ -279,13 +279,13 @@ public class CategoryTasksFragment extends Fragment {
                 .setTitle("Delete Category")
                 .setMessage("Are you sure you want to delete '" + category + "'?")
                 .setPositiveButton("Delete", (dialog, which) -> {
-                    FBRef.getUserTasksRef().whereEqualTo("category", category).get()
+                    Utils.getUserTasksRef().whereEqualTo("category", category).get()
                             .addOnCompleteListener(task -> {
                                 if (task.isSuccessful()) {
                                     for (QueryDocumentSnapshot doc : task.getResult())
                                         doc.getReference().update("category", "No Category");
 
-                                    FBRef.getUserCategoriesRef().document(category).delete()
+                                    Utils.getUserCategoriesRef().document(category).delete()
                                             .addOnSuccessListener(aVoid -> {
                                                 Toast.makeText(getContext(), "Category Removed", Toast.LENGTH_SHORT).show();
                                                 if (getActivity() instanceof TasksActivity) {

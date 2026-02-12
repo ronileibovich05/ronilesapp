@@ -65,7 +65,7 @@
             android:name=".TasksActivity"
             android:exported="false" />
         <activity
-            android:name=".Item_TaskActivity"
+            android:name=".AddTaskActivity"
             android:exported="false" />
         <activity
             android:name=".ProfileActivity"

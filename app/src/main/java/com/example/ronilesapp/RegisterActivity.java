@@ -1,6 +1,6 @@
 package com.example.ronilesapp;
 
-import static com.example.ronilesapp.FBRef.*;
+import static com.example.ronilesapp.Utils.*;
 
 import android.Manifest;
 import android.content.Intent;
@@ -41,6 +41,7 @@ public class RegisterActivity extends BaseActivity {
 
     private Uri selectedImageUri;  // תמונה שנבחרה מהגלריה או מצלמה
     private Uri cameraImageUri;    // URI זמני למצלמה
+
 
     private ActivityResultLauncher<String> pickImageLauncher;
     private ActivityResultLauncher<Uri> cameraLauncher;
@@ -217,7 +218,7 @@ public class RegisterActivity extends BaseActivity {
         User newUser = new User(uid, firstName, lastName, email, notifications, imageUrl, false);
 
         // שימוש ב-refUsers (שהוא כנראה קיצור ל-Firestore collection "Users" שיש לך ב-FBRef)
-        // אם FBRef.refUsers לא מוגדר אצלך כ-CollectionReference, תשתמשי ב:
+        // אם Utils.refUsers לא מוגדר אצלך כ-CollectionReference, תשתמשי ב:
         // FirebaseFirestore.getInstance().collection("Users")
 
         refUsers.document(uid)

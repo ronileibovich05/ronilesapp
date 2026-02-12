@@ -1,6 +1,6 @@
 package com.example.ronilesapp;
 
-import static com.example.ronilesapp.FBRef.*;
+import static com.example.ronilesapp.Utils.*;
 
 import android.net.Uri;
 import android.os.Bundle;

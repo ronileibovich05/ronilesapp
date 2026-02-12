@@ -86,11 +86,11 @@ public class TasksActivity extends BaseActivity {
 
         fabAddTask.setOnClickListener(v -> {
             // בדיקה גם בלחיצה
-            if (!NetworkUtil.isConnected(this)) {
+            if (!Utils.isConnected(this)) {
                 checkInternet(); // שימוש בפונקציה החדשה שמציגה דיאלוג יפה
                 return;
             }
-            startActivity(new Intent(TasksActivity.this, Item_TaskActivity.class));
+            startActivity(new Intent(TasksActivity.this, AddTaskActivity.class));
         });
 
         btnAddCategory.setOnClickListener(v -> showAddCategoryDialog());
@@ -126,7 +126,7 @@ public class TasksActivity extends BaseActivity {
 
     // --- הפונקציה החדשה שמציגה הודעה אם אין אינטרנט ---
     private void checkInternet() {
-        if (!NetworkUtil.isConnected(this)) {
+        if (!Utils.isConnected(this)) {
             new AlertDialog.Builder(this)
                     .setTitle("No Internet Connection")
                     .setMessage("Please check your internet connection to view and manage tasks.")
@@ -193,13 +193,13 @@ public class TasksActivity extends BaseActivity {
     }
 
     void loadCategoriesAndTasks() {
-        if (!NetworkUtil.isConnected(this)) {
+        if (!Utils.isConnected(this)) {
             // כבר יש בדיקה ב-onStart, אבל ליתר ביטחון נשאיר כאן Toast
             Toast.makeText(this, "No Internet Connection.", Toast.LENGTH_LONG).show();
             return;
         }
 
-        FBRef.getUserCategoriesRef().get().addOnCompleteListener(task -> {
+        Utils.getUserCategoriesRef().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 categoryList.clear();
                 fragments.clear();
@@ -245,13 +245,13 @@ public class TasksActivity extends BaseActivity {
     }
 
     private void saveNewCategory(String categoryName) {
-        if (!NetworkUtil.isConnected(this)) {
+        if (!Utils.isConnected(this)) {
             checkInternet();
             return;
         }
 
         Category category = new Category(categoryName);
-        FBRef.getUserCategoriesRef().document(categoryName)
+        Utils.getUserCategoriesRef().document(categoryName)
                 .set(category)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Category Added!", Toast.LENGTH_SHORT).show();
@@ -261,9 +261,9 @@ public class TasksActivity extends BaseActivity {
     }
 
     private void updateTasksMonthAndTime() {
-        if (!NetworkUtil.isConnected(this)) return;
+        if (!Utils.isConnected(this)) return;
 
-        FBRef.getUserTasksRef().get().addOnCompleteListener(task -> {
+        Utils.getUserTasksRef().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 for (QueryDocumentSnapshot doc : task.getResult()) {
                     Task t = doc.toObject(Task.class);
@@ -282,7 +282,7 @@ public class TasksActivity extends BaseActivity {
                     }
 
                     if (needsUpdate) {
-                        FBRef.getUserTasksRef().document(doc.getId()).set(t);
+                        Utils.getUserTasksRef().document(doc.getId()).set(t);
                     }
                 }
             }

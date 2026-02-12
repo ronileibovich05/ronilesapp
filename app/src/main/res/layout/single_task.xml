@@ -23,6 +23,29 @@
             app:layout_constraintBottom_toBottomOf="parent" />
 
         <TextView
+            android:id="@+id/tvEditButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="EDIT"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#2196F3"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btnShareTask"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_share"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="#4CAF50"
+            android:padding="8dp"
+            app:layout_constraintTop_toBottomOf="@id/tvEditButton"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
             android:id="@+id/tvTaskTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -80,18 +103,6 @@
             android:layout_marginTop="4dp"
             app:layout_constraintStart_toStartOf="@id/tvTaskTitle"
             app:layout_constraintTop_toBottomOf="@id/tvTaskDay" />
-
-        <TextView
-            android:id="@+id/tvEditButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="EDIT"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="#2196F3"
-            android:padding="8dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>
