@@ -37,6 +37,9 @@ public class ProfileActivity extends BaseActivity {
     private SharedPreferences sharedPreferences;
     private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
 
+    // משתנה חדש לשמירת הקישור הנוכחי לתמונה
+    private String currentProfileImageUrl = "";
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,7 +116,6 @@ public class ProfileActivity extends BaseActivity {
     }
 
     private void calculateStats() {
-        // תיקון: אם אין אינטרנט, תציג הודעה ותעצור
         if (!Utils.isConnected(this)) {
             Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
             return;
@@ -127,7 +129,7 @@ public class ProfileActivity extends BaseActivity {
                 for (QueryDocumentSnapshot doc : task.getResult()) {
                     Task t = doc.toObject(Task.class);
                     total++;
-                    if (t.isDone()) { // וודאי שבמחלקה Task הפונקציה נקראת isDone()
+                    if (t.isDone()) {
                         done++;
                     }
                 }
@@ -171,7 +173,6 @@ public class ProfileActivity extends BaseActivity {
         tvLastName.setTextColor(textColor);
         tvEmail.setTextColor(textColor);
         btnEditProfile.setBackgroundColor(buttonColor);
-        // הטקסטים של הסטטיסטיקה
         tvTotalTasks.setTextColor(textColor);
         tvCompletedTasks.setTextColor(textColor);
         tvPendingTasks.setTextColor(textColor);
@@ -179,18 +180,50 @@ public class ProfileActivity extends BaseActivity {
     }
 
     private void loadUserProfile() {
-        String uid = FirebaseAuth.getInstance().getUid();
-        if (uid == null) return;
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            return;
+        }
 
-        Utils.refUsers.document(uid).get().addOnSuccessListener(doc -> {
-            if (doc.exists()) {
-                tvFirstName.setText(doc.getString("firstName"));
-                tvLastName.setText(doc.getString("lastName"));
-                tvEmail.setText(doc.getString("email"));
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-                String url = doc.getString("profileImageUrl");
-                if (url != null && !url.isEmpty()) {
-                    Glide.with(this).load(url).placeholder(R.drawable.ic_default_profile).into(profileImageView);
+        Utils.refUsers.document(uid).get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                DocumentSnapshot doc = task.getResult();
+                if (doc != null && doc.exists()) {
+                    // טעינת הטקסטים הרגילים
+                    tvFirstName.setText(doc.getString("firstName"));
+                    tvLastName.setText(doc.getString("lastName"));
+                    tvEmail.setText(doc.getString("email"));
+
+                    // --- התיקון לתמונה ---
+                    String imageString = doc.getString("profileImageUrl");
+
+                    if (imageString != null && !imageString.isEmpty()) {
+                        // בדיקה: האם זה קישור רגיל (http) או תמונה מוצפנת (Base64)?
+                        if (imageString.startsWith("http")) {
+                            // זה קישור רגיל (למשל מפעם) - נשתמש ב-Glide
+                            Glide.with(this)
+                                    .load(imageString)
+                                    .placeholder(R.drawable.ic_default_profile)
+                                    .into(profileImageView);
+                        } else {
+                            // זה הטקסט הארוך (Base64) - צריך לפענח אותו לתמונה
+                            try {
+                                byte[] decodedString = android.util.Base64.decode(imageString, android.util.Base64.DEFAULT);
+                                android.graphics.Bitmap decodedByte = android.graphics.BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                                profileImageView.setImageBitmap(decodedByte);
+
+                                // עדכון המשתנה הגלובלי לעריכה עתידית
+                                currentProfileImageUrl = imageString;
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                profileImageView.setImageResource(R.drawable.ic_default_profile);
+                            }
+                        }
+                    } else {
+                        // אם אין תמונה בכלל
+                        profileImageView.setImageResource(R.drawable.ic_default_profile);
+                    }
                 }
             }
         });
@@ -214,24 +247,47 @@ public class ProfileActivity extends BaseActivity {
         inputLastName.setText(tvLastName.getText().toString());
         layout.addView(inputLastName);
 
+        // --- הוספת שדה לעריכת תמונה ---
+        final EditText inputImageUrl = new EditText(this);
+        inputImageUrl.setHint("Image URL (leave empty to keep current)");
+        inputImageUrl.setText(currentProfileImageUrl); // מציג את הקישור הקיים אם יש
+        layout.addView(inputImageUrl);
+
         builder.setView(layout);
         builder.setPositiveButton("Save", (dialog, which) ->
-                updateUserProfile(inputFirstName.getText().toString(), inputLastName.getText().toString())
+                updateUserProfile(
+                        inputFirstName.getText().toString().trim(),
+                        inputLastName.getText().toString().trim(),
+                        inputImageUrl.getText().toString().trim() // שולח גם את ה-URL
+                )
         );
         builder.setNegativeButton("Cancel", null);
         builder.show();
     }
 
-    private void updateUserProfile(String firstName, String lastName) {
+    // הפונקציה המעודכנת שמקבלת גם URL
+    private void updateUserProfile(String firstName, String lastName, String imageUrl) {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
 
         Utils.refUsers.document(uid)
-                .update("firstName", firstName, "lastName", lastName)
+                .update("firstName", firstName,
+                        "lastName", lastName,
+                        "profileImageUrl", imageUrl) // מעדכן גם את התמונה ב-Firebase
                 .addOnSuccessListener(aVoid -> {
                     tvFirstName.setText(firstName);
                     tvLastName.setText(lastName);
-                    Toast.makeText(this, "Profile Updated", Toast.LENGTH_SHORT).show();
-                });
+                    currentProfileImageUrl = imageUrl; // עדכון המשתנה המקומי
+
+                    // רענון התמונה במסך מיד עם Glide
+                    if (!imageUrl.isEmpty()) {
+                        Glide.with(this).load(imageUrl).placeholder(R.drawable.ic_default_profile).into(profileImageView);
+                    } else {
+                        profileImageView.setImageResource(R.drawable.ic_default_profile);
+                    }
+
+                    Toast.makeText(this, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Error updating profile", Toast.LENGTH_SHORT).show());
     }
 }
