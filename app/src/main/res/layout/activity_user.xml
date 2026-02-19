@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="#EBC3D2"
     android:padding="24dp"
-    tools:context=".userActivity">
+    tools:context=".UserActivity">
 
     <!-- תמונת פרופיל -->
     <ImageView

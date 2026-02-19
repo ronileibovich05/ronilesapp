@@ -1,13 +1,13 @@
 package com.example.ronilesapp;
 
 public class User {
-    private String uid;          // הוספנו: מזהה ייחודי
+    private String uid;          // מזהה ייחודי
     private String firstName;
     private String lastName;
     private String email;
     private boolean notifications;
     private String profileImageUrl;
-    private boolean isAdmin;     // הוספנו: בדיקה האם מנהל
+    private boolean isAdmin;     // בדיקה האם מנהל
 
     // קונסטרקטור ריק דרוש ל-Firebase
     public User() { }

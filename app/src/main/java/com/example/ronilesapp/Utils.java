@@ -10,8 +10,6 @@ import android.provider.MediaStore;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 
 public class Utils {
 
@@ -22,28 +20,31 @@ public class Utils {
     // Firebase Objects
     public static FirebaseAuth mAuth = FirebaseAuth.getInstance();
     public static FirebaseFirestore FBFS = FirebaseFirestore.getInstance();
-    public static StorageReference storageRef = FirebaseStorage.getInstance().getReference();
 
     // קולקציות ראשיות
     public static CollectionReference refUsers = FBFS.collection("Users");
     public static CollectionReference refImages = FBFS.collection("Images");
     public static CollectionReference refTasks = FBFS.collection("tasks");
+    public static CollectionReference refSharedTasks = FBFS.collection("SharedTasks");
 
-    // קולקציות פרטיות של המשתמש (משימות וקטגוריות)
+    // קולקציות פרטיות של המשתמש (משימות)
     public static CollectionReference getUserTasksRef() {
         if (mAuth.getCurrentUser() != null) {
             String uid = mAuth.getCurrentUser().getUid();
             return FBFS.collection("Users").document(uid).collection("Tasks");
         }
-        return null;
+        else
+            throw new IllegalStateException("User not logged in");
     }
 
+    // קולקציות פרטיות של המשתמש (קטגוריות)
     public static CollectionReference getUserCategoriesRef() {
         if (mAuth.getCurrentUser() != null) {
             String uid = mAuth.getCurrentUser().getUid();
             return FBFS.collection("Users").document(uid).collection("Categories");
         }
-        return null;
+        else
+            throw new IllegalStateException("User not logged in");
     }
 
     // ==========================================

@@ -1,17 +1,18 @@
 package com.example.ronilesapp;
 
+import static com.example.ronilesapp.Utils.refUsers;
+
 import android.Manifest;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -19,11 +20,18 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
@@ -33,26 +41,26 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 public class RegisterActivity extends BaseActivity {
 
     private EditText firstNameEditText, lastNameEditText, emailEditText, passwordEditText;
     private CheckBox notificationsCheckBox;
     private ImageView profileImageView;
-    private Button btnRegister;
+    private Button btnRegister, btnGoToLogin, btnTakePhoto, btnChooseImage;
 
     private Uri selectedImageUri;
     private Uri cameraImageUri;
 
-    // משתני Firebase (רק Auth ו-Firestore, בלי Storage!)
+    // משתני Firebase
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
 
+    // Launchers
     private ActivityResultLauncher<String> pickImageLauncher;
     private ActivityResultLauncher<Uri> cameraLauncher;
     private ActivityResultLauncher<String[]> requestPermissionsLauncher;
-
-    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,8 +71,6 @@ public class RegisterActivity extends BaseActivity {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
-
         // אתחול רכיבי UI
         firstNameEditText = findViewById(R.id.edittext_first_name);
         lastNameEditText = findViewById(R.id.edittext_last_name);
@@ -72,71 +78,118 @@ public class RegisterActivity extends BaseActivity {
         passwordEditText = findViewById(R.id.edittext_password);
         notificationsCheckBox = findViewById(R.id.checkbox_notifications);
         profileImageView = findViewById(R.id.imageview_profile);
-
-        // נסי למצוא את הכפתור לצביעה (אם יש לו ID ב-XML)
-        // btnRegister = findViewById(R.id.btn_register);
+        btnRegister = findViewById(R.id.button_register);
+        btnGoToLogin = findViewById(R.id.btnBackToLogin);
+        btnTakePhoto = findViewById(R.id.button_take_photo);
+        btnChooseImage = findViewById(R.id.button_choose_image);
 
         setupImagePickers();
-        applyThemeColors();
-    }
 
-    private void applyThemeColors() {
-        String theme = sharedPreferences.getString("theme", "pink_brown");
-        int buttonColor;
-        switch (theme) {
-            case "blue_white": buttonColor = getResources().getColor(R.color.blue_primary); break;
-            case "green_white": buttonColor = getResources().getColor(R.color.green_primary); break;
-            default: buttonColor = getResources().getColor(R.color.pink_primary); break;
-        }
-        if (btnRegister != null) btnRegister.setBackgroundColor(buttonColor);
-        notificationsCheckBox.setButtonTintList(android.content.res.ColorStateList.valueOf(buttonColor));
+        //מאזינים
+        btnRegister.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RegisterActivity.this.registerUser();
+            }
+        });
+        btnGoToLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RegisterActivity.this.goToLogin();
+            }
+        });
+        btnTakePhoto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RegisterActivity.this.takePhoto();
+            }
+        });
+        btnChooseImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RegisterActivity.this.chooseImage();
+            }
+        });
+
+        applyThemeColors();
     }
 
     private void setupImagePickers() {
         pickImageLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
-                uri -> {
-                    if (uri != null) {
-                        selectedImageUri = uri;
-                        profileImageView.setImageURI(selectedImageUri);
+                new ActivityResultCallback<Uri>() {
+                    @Override
+                    public void onActivityResult(Uri uri) {
+                        if (uri != null) {
+                            selectedImageUri = uri;
+                            profileImageView.setImageURI(selectedImageUri);
+                        }
                     }
                 }
         );
 
         cameraLauncher = registerForActivityResult(
                 new ActivityResultContracts.TakePicture(),
-                result -> {
-                    if (result) {
-                        selectedImageUri = cameraImageUri;
-                        profileImageView.setImageURI(selectedImageUri);
+                new ActivityResultCallback<Boolean>() {
+                    @Override
+                    public void onActivityResult(Boolean result) {
+                        if (result) {
+                            selectedImageUri = cameraImageUri;
+                            profileImageView.setImageURI(selectedImageUri);
+                        }
                     }
                 }
         );
 
         requestPermissionsLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestMultiplePermissions(),
-                result -> {
-                    if (Boolean.TRUE.equals(result.getOrDefault(Manifest.permission.CAMERA, false))) {
-                        openCamera();
-                    } else {
-                        Toast.makeText(this, "Camera permission needed", Toast.LENGTH_SHORT).show();
+                new ActivityResultCallback<Map<String, Boolean>>() {
+                    @Override
+                    public void onActivityResult(Map<String, Boolean> result) {
+                        if (Boolean.TRUE.equals(result.getOrDefault(Manifest.permission.CAMERA, false))) {
+                            RegisterActivity.this.openCamera();
+                        } else {
+                            Toast.makeText(RegisterActivity.this, "Camera permission needed", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
         );
     }
 
-    public void chooseImage(View view) { pickImageLauncher.launch("image/*"); }
+    private void applyThemeColors() {
+        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        int buttonColor;
 
-    public void takePhoto(View view) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissionsLauncher.launch(new String[]{Manifest.permission.CAMERA});
-            } else {
-                openCamera();
-            }
+        switch (theme) {
+            case "blue_white":
+                buttonColor = ContextCompat.getColor(this, R.color.blue_primary);
+                break;
+            case "green_white":
+                buttonColor = ContextCompat.getColor(this, R.color.green_primary);
+                break;
+            default: // pink_brown
+                buttonColor = ContextCompat.getColor(this, R.color.pink_primary);
+                break;
+        }
+
+        if (btnRegister != null)
+            btnRegister.setBackgroundTintList(ColorStateList.valueOf(buttonColor));
+
+        if (notificationsCheckBox != null) {
+            notificationsCheckBox.setButtonTintList(ColorStateList.valueOf(buttonColor));
+        }
+    }
+
+    public void takePhoto() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionsLauncher.launch(new String[]{Manifest.permission.CAMERA});
         } else {
             openCamera();
         }
+    }
+
+    public void chooseImage() {
+        pickImageLauncher.launch("image/*");
     }
 
     private void openCamera() {
@@ -172,12 +225,12 @@ public class RegisterActivity extends BaseActivity {
 
             return Base64.encodeToString(byteArray, Base64.DEFAULT);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("RegisterActivity", "Failed to encode image", e);
             return null;
         }
     }
 
-    public void registerUser(View view) {
+    public void registerUser() {
         String firstName = firstNameEditText.getText().toString().trim();
         String lastName = lastNameEditText.getText().toString().trim();
         String email = emailEditText.getText().toString().trim();
@@ -190,49 +243,65 @@ public class RegisterActivity extends BaseActivity {
         }
 
         mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        if (user != null) {
-                            String uid = user.getUid();
-                            String imageString = "";
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            // SuccessListener
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            if (user != null) {
+                                String uid = user.getUid();
 
-                            // אם יש תמונה - ממירים אותה לטקסט
-                            if (selectedImageUri != null) {
-                                imageString = encodeImageToBase64(selectedImageUri);
-                                if (imageString == null) imageString = ""; // אם נכשל, נשמור ריק
+                                String imageString = "";
+                                // אם יש תמונה - ממירים אותה לטקסט
+                                if (selectedImageUri != null) {
+                                    imageString = RegisterActivity.this.encodeImageToBase64(selectedImageUri);
+                                    if (imageString == null) imageString = ""; // אם נכשל, נשמור ריק
+                                }
+
+                                // שומרים ישירות ב-Firestore
+                                // בנאי: uid, firstName, lastName, email, notifications, imageString, isAdmin
+                                User newUser = new User(uid, firstName, lastName, email, notifications, imageString, false);
+                                saveUserData(newUser);
                             }
-
-                            // שומרים ישירות ב-Firestore
-                            saveUserData(uid, firstName, lastName, email, notifications, imageString);
-                        }
-                    } else {
-                        if (task.getException() instanceof FirebaseAuthUserCollisionException) {
-                            Toast.makeText(this, "Email already exists", Toast.LENGTH_SHORT).show();
                         } else {
-                            Toast.makeText(this, "Error: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                            // FailureListener
+                            if (task.getException() instanceof FirebaseAuthUserCollisionException) {
+                                Toast.makeText(RegisterActivity.this, "Email already exists", Toast.LENGTH_SHORT).show();
+                            } else {
+                                String errorMsg = "Unknown error";
+                                if (task.getException() != null)
+                                    errorMsg = task.getException().getMessage();
+                                Toast.makeText(RegisterActivity.this, "Error: " + errorMsg, Toast.LENGTH_SHORT).show();
+                            }
                         }
                     }
                 });
     }
 
-    private void saveUserData(String uid, String firstName, String lastName, String email, boolean notifications, String imageString) {
-        // בנאי: uid, firstName, lastName, email, notifications, imageString, isAdmin
-        User newUser = new User(uid, firstName, lastName, email, notifications, imageString, false);
-
-        db.collection("Users").document(uid)
+    private void saveUserData(User newUser) {
+        String uid = newUser.getUid();
+        refUsers.document(uid)
                 .set(newUser)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Registered successfully!", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(RegisterActivity.this, TasksActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    finish();
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Toast.makeText(RegisterActivity.this, "Registered successfully!", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(RegisterActivity.this, TasksActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        RegisterActivity.this.startActivity(intent);
+                        RegisterActivity.this.finish();
+                    }
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to save data: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(RegisterActivity.this, "Failed to save data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
-    public void goToLogin(View view) {
+    public void goToLogin() {
         startActivity(new Intent(this, LoginActivity.class));
         finish();
     }

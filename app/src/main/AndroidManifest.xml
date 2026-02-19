@@ -59,7 +59,7 @@
             android:name=".WelcomeActivity"
             android:exported="false" />
         <activity
-            android:name=".userActivity"
+            android:name=".UserActivity"
             android:exported="false" />
         <activity
             android:name=".TasksActivity"

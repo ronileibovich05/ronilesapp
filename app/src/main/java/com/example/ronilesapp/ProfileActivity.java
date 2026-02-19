@@ -1,9 +1,14 @@
 package com.example.ronilesapp;
 
+import static com.example.ronilesapp.Utils.refUsers;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
+import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -12,21 +17,28 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.app.AlertDialog;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.firestore.QuerySnapshot;
 
 public class ProfileActivity extends BaseActivity {
 
     private ImageView profileImageView;
     private TextView tvFirstName, tvLastName, tvEmail;
-    private BottomNavigationView bottomNavigation;
+    private BottomNavigationView bottomNavigationView;
     private Button btnEditProfile;
     private ScrollView scrollProfile;
 
@@ -34,25 +46,23 @@ public class ProfileActivity extends BaseActivity {
     private TextView tvPercentage, tvTotalTasks, tvCompletedTasks, tvPendingTasks;
     private Button btnLogout;
 
-    private SharedPreferences sharedPreferences;
     private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
 
-    // משתנה חדש לשמירת הקישור הנוכחי לתמונה
+    // משתנה לשמירת הקישור הנוכחי לתמונה
     private String currentProfileImageUrl = "";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        applySelectedTheme();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
-
-        sharedPreferences = getSharedPreferences("AppPrefs", MODE_PRIVATE);
 
         // חיבור רכיבים
         profileImageView = findViewById(R.id.imageviewProfile);
         tvFirstName = findViewById(R.id.tvFirstName);
         tvLastName = findViewById(R.id.tvLastName);
         tvEmail = findViewById(R.id.tvEmail);
-        bottomNavigation = findViewById(R.id.bottomNavigation);
+        bottomNavigationView = findViewById(R.id.bottomNavigation);
         btnEditProfile = findViewById(R.id.btnEditProfile);
         scrollProfile = findViewById(R.id.scrollProfile);
         progressBarStats = findViewById(R.id.progressBarStats);
@@ -63,44 +73,65 @@ public class ProfileActivity extends BaseActivity {
         btnLogout = findViewById(R.id.btnLogout);
 
         // הגדרת תפריט ניווט
-        bottomNavigation.setSelectedItemId(R.id.nav_profile);
-        bottomNavigation.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_home) {
-                startActivity(new Intent(this, TasksActivity.class));
-                overridePendingTransition(0, 0);
-                return true;
-            } else if (id == R.id.nav_settings) {
-                startActivity(new Intent(this, SettingsActivity.class));
-                overridePendingTransition(0, 0);
-                return true;
+        bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+                if (id == R.id.nav_home) {
+                    ProfileActivity.this.startActivity(new Intent(ProfileActivity.this, TasksActivity.class));
+                    ProfileActivity.this.overridePendingTransition(0, 0);
+                    return true;
+                } else if (id == R.id.nav_settings) {
+                    ProfileActivity.this.startActivity(new Intent(ProfileActivity.this, SettingsActivity.class));
+                    ProfileActivity.this.overridePendingTransition(0, 0);
+                    return true;
+                }
+                return id == R.id.nav_profile;
             }
-            return id == R.id.nav_profile;
         });
 
-        loadUserProfile();
-        calculateStats();
+        btnEditProfile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ProfileActivity.this.showEditProfileDialog();
+            }
+        });
 
-        btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
-
-        btnLogout.setOnClickListener(v -> {
-            FirebaseAuth.getInstance().signOut();
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
+        btnLogout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FirebaseAuth.getInstance().signOut();
+                Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                ProfileActivity.this.startActivity(intent);
+            }
         });
 
         // האזנה לשינויי Theme ורענון המסך בזמן אמת
-        themeListener = (prefs, key) -> {
-            if ("theme".equals(key)) {
-                recreate(); // מרענן את כל ה-Activity כדי שהעיצוב יתעדכן מיד
+        themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
+                if ("theme".equals(key)) {
+                    ProfileActivity.this.recreate(); //TODO   מרענן את כל ה-Activity כדי שהעיצוב יתעדכן מיד - לעומת applyThemeColors
+                }
             }
         };
-        sharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
+        baseSharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
 
         applyThemeColors();
+
+        loadUserProfile();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // לוודא שה־Profile מסומן כשחוזרים למסך
+        if (bottomNavigationView.getSelectedItemId() != R.id.nav_profile) {
+            bottomNavigationView.setSelectedItemId(R.id.nav_profile);
+        }
+    }
     @Override
     protected void onStart() {
         super.onStart();
@@ -110,8 +141,8 @@ public class ProfileActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (sharedPreferences != null && themeListener != null) {
-            sharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
+        if (baseSharedPreferences != null && themeListener != null) {
+            baseSharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
     }
 
@@ -121,50 +152,55 @@ public class ProfileActivity extends BaseActivity {
             return;
         }
 
-        Utils.getUserTasksRef().get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult() != null) {
-                int total = 0;
-                int done = 0;
+        Utils.getUserTasksRef().get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    int total = 0;
+                    int done = 0;
 
-                for (QueryDocumentSnapshot doc : task.getResult()) {
-                    Task t = doc.toObject(Task.class);
-                    total++;
-                    if (t.isDone()) {
-                        done++;
+                    for (QueryDocumentSnapshot doc : task.getResult()) {
+                        UserTask t = doc.toObject(UserTask.class);
+                        total++;
+                        if (t.isDone()) {
+                            done++;
+                        }
                     }
+
+                    int pending = total - done;
+                    int progress = (total == 0) ? 0 : (done * 100 / total);
+
+                    tvTotalTasks.setText(String.valueOf(total));
+                    tvCompletedTasks.setText(String.valueOf(done));
+                    tvPendingTasks.setText(String.valueOf(pending));
+                    progressBarStats.setProgress(progress);
+                    tvPercentage.setText(progress + "%");
+                }else {
+                    Toast.makeText(ProfileActivity.this, "Failed to load stats", Toast.LENGTH_SHORT).show();
                 }
-
-                int pending = total - done;
-                int progress = (total == 0) ? 0 : (done * 100 / total);
-
-                tvTotalTasks.setText(String.valueOf(total));
-                tvCompletedTasks.setText(String.valueOf(done));
-                tvPendingTasks.setText(String.valueOf(pending));
-                progressBarStats.setProgress(progress);
-                tvPercentage.setText(progress + "%");
             }
         });
     }
 
     private void applyThemeColors() {
-        String theme = sharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString("theme", "pink_brown");
         int backgroundColor, textColor, buttonColor;
 
         switch (theme) {
             case "blue_white":
-                backgroundColor = getResources().getColor(R.color.blue_background);
-                textColor = getResources().getColor(R.color.black);
-                buttonColor = getResources().getColor(R.color.blue_primary);
+                backgroundColor = ContextCompat.getColor(this, R.color.blue_background);
+                textColor = ContextCompat.getColor(this, R.color.black);
+                buttonColor = ContextCompat.getColor(this, R.color.blue_primary);
                 break;
             case "green_white":
-                backgroundColor = getResources().getColor(R.color.green_background);
-                textColor = getResources().getColor(R.color.black);
-                buttonColor = getResources().getColor(R.color.green_primary);
+                backgroundColor = ContextCompat.getColor(this, R.color.green_background);
+                textColor = ContextCompat.getColor(this, R.color.black);
+                buttonColor = ContextCompat.getColor(this, R.color.green_primary);
                 break;
             default: // pink_brown
-                backgroundColor = getResources().getColor(R.color.pink_background);
-                textColor = getResources().getColor(R.color.brown);
-                buttonColor = getResources().getColor(R.color.pink_primary);
+                backgroundColor = ContextCompat.getColor(this, R.color.pink_background);
+                textColor = ContextCompat.getColor(this, R.color.brown);
+                buttonColor = ContextCompat.getColor(this, R.color.pink_primary);
                 break;
         }
 
@@ -177,6 +213,9 @@ public class ProfileActivity extends BaseActivity {
         tvCompletedTasks.setTextColor(textColor);
         tvPendingTasks.setTextColor(textColor);
         tvPercentage.setTextColor(textColor);
+
+        //TODO btnLogout.setBackgroundColor(buttonColor);
+        //TODO btnLogout.setTextColor(textColor);
     }
 
     private void loadUserProfile() {
@@ -186,44 +225,29 @@ public class ProfileActivity extends BaseActivity {
 
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        Utils.refUsers.document(uid).get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                DocumentSnapshot doc = task.getResult();
-                if (doc != null && doc.exists()) {
-                    // טעינת הטקסטים הרגילים
-                    tvFirstName.setText(doc.getString("firstName"));
-                    tvLastName.setText(doc.getString("lastName"));
-                    tvEmail.setText(doc.getString("email"));
+        refUsers.document(uid).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if (task.isSuccessful()) {
+                    DocumentSnapshot doc = task.getResult();
+                    if (doc != null && doc.exists()) {
+                        // טעינת הטקסטים הרגילים
+                        tvFirstName.setText(doc.getString("firstName"));
+                        tvLastName.setText(doc.getString("lastName"));
+                        tvEmail.setText(doc.getString("email"));
 
-                    // --- התיקון לתמונה ---
-                    String imageString = doc.getString("profileImageUrl");
+                        // --- התיקון לתמונה ---
+                        String imageString = doc.getString("profileImageUrl");
 
-                    if (imageString != null && !imageString.isEmpty()) {
-                        // בדיקה: האם זה קישור רגיל (http) או תמונה מוצפנת (Base64)?
-                        if (imageString.startsWith("http")) {
-                            // זה קישור רגיל (למשל מפעם) - נשתמש ב-Glide
-                            Glide.with(this)
-                                    .load(imageString)
-                                    .placeholder(R.drawable.ic_default_profile)
-                                    .into(profileImageView);
+                        if (imageString != null && !imageString.isEmpty()) {
+                            currentProfileImageUrl = imageString;
+                            loadImageFromString(imageString);
                         } else {
-                            // זה הטקסט הארוך (Base64) - צריך לפענח אותו לתמונה
-                            try {
-                                byte[] decodedString = android.util.Base64.decode(imageString, android.util.Base64.DEFAULT);
-                                android.graphics.Bitmap decodedByte = android.graphics.BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                                profileImageView.setImageBitmap(decodedByte);
-
-                                // עדכון המשתנה הגלובלי לעריכה עתידית
-                                currentProfileImageUrl = imageString;
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                profileImageView.setImageResource(R.drawable.ic_default_profile);
-                            }
+                            profileImageView.setImageResource(R.drawable.ic_default_profile);
                         }
-                    } else {
-                        // אם אין תמונה בכלל
-                        profileImageView.setImageResource(R.drawable.ic_default_profile);
                     }
+                } else {
+                    Toast.makeText(ProfileActivity.this, "Failed to load profile", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -254,12 +278,16 @@ public class ProfileActivity extends BaseActivity {
         layout.addView(inputImageUrl);
 
         builder.setView(layout);
-        builder.setPositiveButton("Save", (dialog, which) ->
-                updateUserProfile(
-                        inputFirstName.getText().toString().trim(),
-                        inputLastName.getText().toString().trim(),
-                        inputImageUrl.getText().toString().trim() // שולח גם את ה-URL
-                )
+        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        ProfileActivity.this.updateUserProfile(
+                                inputFirstName.getText().toString().trim(),
+                                inputLastName.getText().toString().trim(),
+                                inputImageUrl.getText().toString().trim() // שולח גם את ה-URL
+                        );
+                    }
+                }
         );
         builder.setNegativeButton("Cancel", null);
         builder.show();
@@ -268,26 +296,50 @@ public class ProfileActivity extends BaseActivity {
     // הפונקציה המעודכנת שמקבלת גם URL
     private void updateUserProfile(String firstName, String lastName, String imageUrl) {
         String uid = FirebaseAuth.getInstance().getUid();
-        if (uid == null) return;
+        if (uid == null)
+            return;
 
-        Utils.refUsers.document(uid)
+        refUsers.document(uid)
                 .update("firstName", firstName,
                         "lastName", lastName,
                         "profileImageUrl", imageUrl) // מעדכן גם את התמונה ב-Firebase
-                .addOnSuccessListener(aVoid -> {
-                    tvFirstName.setText(firstName);
-                    tvLastName.setText(lastName);
-                    currentProfileImageUrl = imageUrl; // עדכון המשתנה המקומי
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        tvFirstName.setText(firstName);
+                        tvLastName.setText(lastName);
+                        currentProfileImageUrl = imageUrl; // עדכון המשתנה המקומי
 
-                    // רענון התמונה במסך מיד עם Glide
-                    if (!imageUrl.isEmpty()) {
-                        Glide.with(this).load(imageUrl).placeholder(R.drawable.ic_default_profile).into(profileImageView);
-                    } else {
-                        profileImageView.setImageResource(R.drawable.ic_default_profile);
+                        // רענון התמונה במסך מיד עם Glide
+                        if (!imageUrl.isEmpty()) {
+                            loadImageFromString(imageUrl); // ← במקום כל הבלוק
+                        } else {
+                            profileImageView.setImageResource(R.drawable.ic_default_profile);
+                        }
+
+                        Toast.makeText(ProfileActivity.this, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show();
                     }
-
-                    Toast.makeText(this, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error updating profile", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(ProfileActivity.this, "Error updating profile", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void loadImageFromString(String imageString) {
+        if (imageString.startsWith("http")) {
+            Glide.with(this).load(imageString)
+                    .placeholder(R.drawable.ic_default_profile).into(profileImageView);
+        } else {
+            try {
+                byte[] decoded = android.util.Base64.decode(imageString, android.util.Base64.DEFAULT);
+                profileImageView.setImageBitmap(
+                        android.graphics.BitmapFactory.decodeByteArray(decoded, 0, decoded.length));
+            } catch (Exception e) {
+                profileImageView.setImageResource(R.drawable.ic_default_profile);
+            }
+        }
     }
 }

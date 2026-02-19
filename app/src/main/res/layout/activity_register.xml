@@ -35,7 +35,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Choose Image"
-                android:onClick="chooseImage"
                 android:textColor="#FFFFFF"
                 android:background="@drawable/rounded_button"
                 android:layout_marginEnd="8dp"
@@ -46,7 +45,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Take Photo"
-                android:onClick="takePhoto"
                 android:textColor="#FFFFFF"
                 android:background="@drawable/rounded_button"
                 android:padding="12dp"/>
@@ -104,7 +102,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Register"
-            android:onClick="registerUser"
             android:textColor="#FFFFFF"
             android:background="@drawable/rounded_button"
             android:padding="16dp"
@@ -116,7 +113,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Back to Login"
-            android:onClick="goToLogin"
             android:textColor="#FFFFFF"
             android:background="@drawable/rounded_button"
             android:padding="16dp"/>

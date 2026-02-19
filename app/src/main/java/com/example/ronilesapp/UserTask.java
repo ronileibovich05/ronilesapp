@@ -2,7 +2,7 @@ package com.example.ronilesapp;
 
 import java.util.Calendar;
 
-public class Task {
+public class UserTask {
     private String id; // 1. הוספתי את שדה ה-ID שחסר
     private String title;
     private String description;
@@ -17,11 +17,11 @@ public class Task {
     private long creationTime;
 
     // בנאי ריק (חובה ל-Firebase)
-    public Task() { }
+    public UserTask() { }
 
     // 2. עדכנתי את הבנאי כדי שיקבל גם את ה-id בהתחלה
-    public Task(String id, String title, String description, int day, int month, int year,
-                int hour, int minute, String category, boolean done) {
+    public UserTask(String id, String title, String description, int day, int month, int year,
+                    int hour, int minute, String category, boolean done) {
         this.id = id; // שמירת ה-ID
         this.title = title;
         this.description = description;

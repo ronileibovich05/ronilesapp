@@ -39,8 +39,8 @@ public class CategoryTasksFragment extends Fragment {
     private LinearLayout emptyStateLayout;
 
     private TasksAdapter adapter;
-    private List<Task> taskList = new ArrayList<>();
-    private List<Task> displayedTaskList = new ArrayList<>();
+    private List<UserTask> taskList = new ArrayList<>();
+    private List<UserTask> displayedTaskList = new ArrayList<>();
     private Button btnDeleteCategory;
     private Spinner spinnerSort;
     private EditText searchEditText;
@@ -196,7 +196,7 @@ public class CategoryTasksFragment extends Fragment {
             if (value != null) {
                 taskList.clear();
                 for (QueryDocumentSnapshot doc : value) {
-                    Task taskObj = doc.toObject(Task.class);
+                    UserTask taskObj = doc.toObject(UserTask.class);
                     taskObj.setId(doc.getId());
                     if (taskObj.getCategory() == null) taskObj.setCategory("No Category");
 
@@ -263,7 +263,7 @@ public class CategoryTasksFragment extends Fragment {
         displayedTaskList.clear();
         if (query.isEmpty()) displayedTaskList.addAll(taskList);
         else {
-            for (Task t : taskList) {
+            for (UserTask t : taskList) {
                 if ((t.getTitle() != null && t.getTitle().toLowerCase().contains(query.toLowerCase())) ||
                         (t.getDescription() != null && t.getDescription().toLowerCase().contains(query.toLowerCase()))) {
                     displayedTaskList.add(t);

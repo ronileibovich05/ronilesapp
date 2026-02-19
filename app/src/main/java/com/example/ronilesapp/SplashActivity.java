@@ -7,8 +7,11 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+
 public class SplashActivity extends AppCompatActivity {
 
+    private CountDownTimer countDownTimer;
     private TextView tvCountDown;
 
     @Override
@@ -20,37 +23,45 @@ public class SplashActivity extends AppCompatActivity {
             getSupportActionBar().hide();
         }
 
+        // אם המשתמש כבר מחובר — נדלג על Login
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            startActivity(new Intent(SplashActivity.this, TasksActivity.class));
+            finish();
+            return;
+        }
+
         // חיבור ל-TextView של המספר
         tvCountDown = findViewById(R.id.tvCountDown);
 
-        // --- טיימר ל-4 שניות (כדי שיראו את ה-3 כמו שצריך) ---
-        // שמנו 4000 כדי שהספירה תתחיל יפה מ-3 ותרד ל-1
-        new CountDownTimer(3500, 1000) {
+        // --- טיימר ל-4 שניות, יציג 4 עד 1 ---
+        countDownTimer = new CountDownTimer(4000, 1000) {
 
             @Override
             public void onTick(long millisUntilFinished) {
                 // חישוב השניות שנותרו
                 // חילוק ב-1000 הופך מילישניות לשניות
-                int secondsRemaining = (int) (millisUntilFinished / 1000);
+                // נעגל למעלה ולא נגיע ל-0
+                int secondsRemaining = (int) Math.ceil(millisUntilFinished / 1000.0);
 
                 // עדכון הטקסט במסך
-                // הוספתי הגנה קטנה שלא יציג 0
-                if (secondsRemaining > 0) {
-                    tvCountDown.setText(String.valueOf(secondsRemaining));
-                } else {
-                    tvCountDown.setText("1");
-                }
+                tvCountDown.setText(String.valueOf(secondsRemaining));
             }
 
             @Override
             public void onFinish() {
                 // כשהזמן נגמר - עוברים למסך הבא
-                tvCountDown.setText("0"); // אופציונלי
-
                 Intent intent = new Intent(SplashActivity.this, LoginActivity.class);
                 startActivity(intent);
                 finish();
             }
         }.start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+        }
     }
 }

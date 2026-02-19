@@ -1,8 +1,8 @@
 package com.example.ronilesapp;
 
-import static com.example.ronilesapp.Utils.*;
+import static com.example.ronilesapp.Utils.mAuth;
+import static com.example.ronilesapp.Utils.refUsers;
 
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,10 +13,15 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,33 +53,64 @@ public class WelcomeActivity extends AppCompatActivity {
         String uid = user.getUid();
 
         // קבלת פרטי המשתמש מ-Firestore
-        refUsers.document(uid).get().addOnSuccessListener(snapshot -> {
-            if (snapshot.exists()) {
-                currentUser = snapshot.toObject(User.class);
-                if (currentUser != null) {
-                    String name = currentUser.getFirstName();
-                    if (name == null || name.isEmpty()) {
-                        name = user.getEmail().split("@")[0];
-                    }
-                    welcomeText.setText("Welcome, " + name);
+        refUsers.document(uid).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    currentUser = snapshot.toObject(User.class);
+                    if (currentUser != null) {
+                        String first = currentUser.getFirstName();
+                        String last = currentUser.getLastName();
 
-                    // הצגת תמונת פרופיל דרך URI בלבד
-                    if (currentUser.getProfileImageUrl() != null && !currentUser.getProfileImageUrl().isEmpty()) {
-                        Uri imageUri = Uri.parse(currentUser.getProfileImageUrl());
-                        profileImageView.setImageURI(imageUri);
+                        if (first == null) first = "";
+                        if (last == null) last = "";
+
+                        String name = (first + " " + last).trim();
+                        if (name.isEmpty()) {
+                            name = user.getEmail().split("@")[0];
+                        }
+                        welcomeText.setText("Welcome, " + name);
+
+                        // הצגת תמונת פרופיל
+                        String url = currentUser.getProfileImageUrl();
+
+                        if (url == null || url.isEmpty()) {
+                            profileImageView.setImageResource(R.drawable.ic_default_profile);
+                        } else {
+                            Glide.with(WelcomeActivity.this)
+                                    .load(url)
+                                    .placeholder(R.drawable.ic_default_profile)
+                                    .error(R.drawable.ic_default_profile)
+                                    .into(profileImageView);
+                        }
                     }
+                } else {
+                    String fallback = user.getEmail() != null ? user.getEmail().split("@")[0] : "User";
+                    welcomeText.setText("Welcome, " + fallback);
+                    profileImageView.setImageResource(R.drawable.ic_default_profile);
                 }
             }
         });
 
         // כפתור Edit פותח חלון עריכה
-        btnEdit.setOnClickListener(v -> openEditDialog());
+        btnEdit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                WelcomeActivity.this.openEditDialog();
+            }
+        });
 
-        btnDelete.setOnClickListener(v -> deleteUser());
+        btnDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                WelcomeActivity.this.deleteUser();
+            }
+        });
     }
 
     private void openEditDialog() {
-        if (currentUser == null) return;
+        if (currentUser == null)
+            return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = LayoutInflater.from(this).inflate(R.layout.activity_dialog_edit_user, null);
@@ -93,43 +129,55 @@ public class WelcomeActivity extends AppCompatActivity {
         editEmail.setText(currentUser.getEmail());
         editNotifications.setChecked(currentUser.isNotifications());
 
-        if (currentUser.getProfileImageUrl() != null && !currentUser.getProfileImageUrl().isEmpty()) {
-            Uri imageUri = Uri.parse(currentUser.getProfileImageUrl());
-            editProfileImage.setImageURI(imageUri);
+        String url = currentUser.getProfileImageUrl();
+
+        if (url == null || url.isEmpty()) {
+            editProfileImage.setImageResource(R.drawable.ic_default_profile);
+        } else {
+            Glide.with(WelcomeActivity.this)
+                    .load(url)
+                    .placeholder(R.drawable.ic_default_profile)
+                    .error(R.drawable.ic_default_profile)
+                    .into(editProfileImage);
         }
 
         AlertDialog dialog = builder.create();
 
-        btnSaveUser.setOnClickListener(v -> {
-            String newFirstName = editFirstName.getText().toString().trim();
-            String newLastName = editLastName.getText().toString().trim();
-            String newEmail = editEmail.getText().toString().trim();
-            boolean newNotifications = editNotifications.isChecked();
+        btnSaveUser.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String newFirstName = editFirstName.getText().toString().trim();
+                String newLastName = editLastName.getText().toString().trim();
+                String newEmail = editEmail.getText().toString().trim();
+                boolean newNotifications = editNotifications.isChecked();
 
-            if (newFirstName.isEmpty() || newLastName.isEmpty() || newEmail.isEmpty()) {
-                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
-                return;
+                if (newFirstName.isEmpty() || newLastName.isEmpty() || newEmail.isEmpty()) {
+                    Toast.makeText(WelcomeActivity.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                FirebaseUser user = mAuth.getCurrentUser();
+                if (user == null) return;
+                String uid = user.getUid();
+
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("firstName", newFirstName);
+                updates.put("lastName", newLastName);
+                updates.put("email", newEmail);
+                updates.put("notifications", newNotifications);
+
+                refUsers.document(uid).update(updates)
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(WelcomeActivity.this, "User updated!", Toast.LENGTH_SHORT).show();
+                            currentUser.setFirstName(newFirstName);
+                            currentUser.setLastName(newLastName);
+                            currentUser.setEmail(newEmail);
+                            currentUser.setNotifications(newNotifications);
+                            welcomeText.setText("Welcome, " + (newFirstName + " " + newLastName).trim());
+                            dialog.dismiss();
+                        })
+                        .addOnFailureListener(e -> Toast.makeText(WelcomeActivity.this, "Update failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
-
-            FirebaseUser user = mAuth.getCurrentUser();
-            if (user == null) return;
-            String uid = user.getUid();
-
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("firstName", newFirstName);
-            updates.put("lastName", newLastName);
-            updates.put("email", newEmail);
-            updates.put("notifications", newNotifications);
-
-            refUsers.document(uid).update(updates).addOnSuccessListener(aVoid -> {
-                Toast.makeText(this, "User updated!", Toast.LENGTH_SHORT).show();
-                currentUser.setFirstName(newFirstName);
-                currentUser.setLastName(newLastName);
-                currentUser.setEmail(newEmail);
-                currentUser.setNotifications(newNotifications);
-                welcomeText.setText("Welcome, " + newFirstName);
-                dialog.dismiss();
-            }).addOnFailureListener(e -> Toast.makeText(this, "Update failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
         });
 
         dialog.show();
@@ -143,11 +191,18 @@ public class WelcomeActivity extends AppCompatActivity {
 
         refUsers.document(uid).delete();
 
-        user.delete().addOnSuccessListener(unused -> {
-            Toast.makeText(this, "User deleted", Toast.LENGTH_SHORT).show();
-            goToLogin();
-        }).addOnFailureListener(e ->
-                Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+        user.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void unused) {
+                Toast.makeText(WelcomeActivity.this, "User deleted", Toast.LENGTH_SHORT).show();
+                WelcomeActivity.this.goToLogin();
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(WelcomeActivity.this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                }
         );
     }
 

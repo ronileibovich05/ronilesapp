@@ -11,7 +11,9 @@ public class BaseActivity extends AppCompatActivity {
     protected static final String PREFS_NAME = "AppSettingsPrefs";
     protected static final String KEY_THEME = "theme";
 
-    // 🔹 זוכר איזה theme היה בפעם האחרונה
+    // גישה ל-SharedPreferences
+    SharedPreferences baseSharedPreferences;
+    // איזה theme היה בפעם האחרונה
     private String lastTheme;
 
     @Override
@@ -19,8 +21,9 @@ public class BaseActivity extends AppCompatActivity {
         applySelectedTheme();
         super.onCreate(savedInstanceState);
 
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        lastTheme = prefs.getString(KEY_THEME, "pink_brown");
+        // SharedPreferences משותף לכל המחלקה — מאותחל ב-onCreate
+        baseSharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        lastTheme = baseSharedPreferences.getString(KEY_THEME, "pink_brown");
     }
 
 
@@ -28,8 +31,8 @@ public class BaseActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String currentTheme = prefs.getString(KEY_THEME, "pink_brown");
+        //prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String currentTheme = baseSharedPreferences.getString(KEY_THEME, "pink_brown");
 
         if (lastTheme != null && !lastTheme.equals(currentTheme)) {
             lastTheme = currentTheme; // חשוב לעדכן לפני
@@ -42,8 +45,8 @@ public class BaseActivity extends AppCompatActivity {
 
 
     protected void applySelectedTheme() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String theme = prefs.getString(KEY_THEME, "pink_brown");
+        SharedPreferences localPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String theme = localPrefs.getString(KEY_THEME, "pink_brown");
 
         switch (theme) {
             case "pink_brown":
@@ -54,6 +57,9 @@ public class BaseActivity extends AppCompatActivity {
                 break;
             case "green_white":
                 setTheme(R.style.Theme_GreenWhite);
+                break;
+            default:    // theme לא מוכר — חוזרים לברירת המחדל
+                setTheme(R.style.Theme_PinkBrown);
                 break;
         }
     }

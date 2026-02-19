@@ -10,6 +10,12 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
 // 1. שינוי: יורש מ-BaseActivity כדי לקבל את הרקע המשתנה
@@ -18,9 +24,10 @@ public class LoginActivity extends BaseActivity {
     private FirebaseAuth mAuth;
     private EditText emailEditText, passwordEditText;
     private CheckBox rememberCheckBox;
-    private Button btnLogin; // משתנה לכפתור כדי שנוכל לצבוע אותו
+    private Button btnLogin;
+    private Button btnGoToRegister;
 
-    private SharedPreferences themePrefs; // העדפות לערכת נושא
+    SharedPreferences loginPrefs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,33 +36,34 @@ public class LoginActivity extends BaseActivity {
 
         mAuth = FirebaseAuth.getInstance();
 
-        // חיבור ל-SharedPreferences של העיצוב (AppPrefs)
-        themePrefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
-
         // חיבור Views
         emailEditText = findViewById(R.id.edittext_email);
         passwordEditText = findViewById(R.id.edittext_password);
         rememberCheckBox = findViewById(R.id.checkbox_remember);
+        btnLogin = findViewById(R.id.button_login);
+        btnGoToRegister = findViewById(R.id.btnBackToRegister);
 
-        // --- חשוב: ---
-        // נסי למצוא את הכפתור לפי ה-ID שיש לך ב-XML.
-        // אם ב-activity_login.xml אין לכפתור ID, תוסיפי לו: android:id="@+id/btn_login"
-        try {
-            btnLogin = findViewById(R.id.button_login);
-            // אם ה-ID אצלך שונה (למשל buttonLogin), תשני כאן בהתאם!
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        //מאזינים
+        btnLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                login();
+            }
+        });
+        btnGoToRegister.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                register();
+            }
+        });
 
-        // לוגיקה קיימת: בדיקה אם נשמרו פרטי התחברות (loginPrefs)
-        SharedPreferences loginPrefs = getSharedPreferences("loginPrefs", MODE_PRIVATE);
+        // לוגיקה קיימת: בדיקה אם נשמרו פרטי התחברות
+        loginPrefs = getSharedPreferences("loginPrefs", MODE_PRIVATE);
         boolean remember = loginPrefs.getBoolean("remember", false);
 
         if (remember) {
             String savedEmail = loginPrefs.getString("email", "");
-            String savedPassword = loginPrefs.getString("password", "");
             emailEditText.setText(savedEmail);
-            passwordEditText.setText(savedPassword);
             rememberCheckBox.setChecked(true);
         }
 
@@ -65,40 +73,39 @@ public class LoginActivity extends BaseActivity {
 
     // פונקציה לצביעת הכפתורים וה-CheckBox לפי ה-Theme
     private void applyThemeColors() {
-        String theme = themePrefs.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString("theme", "pink_brown");
         int primaryColor;
 
         // בחירת הצבע הנכון לפי ה-Theme
         switch (theme) {
             case "blue_white":
-                primaryColor = getResources().getColor(R.color.blue_primary);
+                primaryColor = ContextCompat.getColor(this, R.color.blue_primary);
                 break;
             case "green_white":
-                primaryColor = getResources().getColor(R.color.green_primary);
+                primaryColor = ContextCompat.getColor(this, R.color.green_primary);
                 break;
             default: // pink_brown
-                primaryColor = getResources().getColor(R.color.pink_primary);
+                primaryColor = ContextCompat.getColor(this, R.color.pink_primary);
                 break;
         }
 
         // שימוש ב-Tint במקום ב-BackgroundColor כדי לשמור על הצורה (הפינות המעוגלות)
         if (btnLogin != null) {
-            btnLogin.setBackgroundTintList(android.content.res.ColorStateList.valueOf(primaryColor));
+            btnLogin.setBackgroundTintList(ColorStateList.valueOf(primaryColor));
         }
 
         // נצבע גם את כפתור ה-Register אם מצאת אותו ב-onCreate
-        Button btnGoToRegister = findViewById(R.id.button_register); // וודאי שזה ה-ID ב-XML
         if (btnGoToRegister != null) {
-            btnGoToRegister.setBackgroundTintList(android.content.res.ColorStateList.valueOf(primaryColor));
+            btnGoToRegister.setBackgroundTintList(ColorStateList.valueOf(primaryColor));
         }
 
         // צביעת ה-CheckBox
         if (rememberCheckBox != null) {
-            rememberCheckBox.setButtonTintList(android.content.res.ColorStateList.valueOf(primaryColor));
+            rememberCheckBox.setButtonTintList(ColorStateList.valueOf(primaryColor));
         }
     }
 
-    public void login(View view) {
+    public void login() {
         String email = emailEditText.getText().toString().trim();
         String password = passwordEditText.getText().toString().trim();
 
@@ -108,33 +115,37 @@ public class LoginActivity extends BaseActivity {
         }
 
         mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        // שמירת פרטי התחברות
-                        SharedPreferences loginPrefs = getSharedPreferences("loginPrefs", MODE_PRIVATE);
-                        SharedPreferences.Editor editor = loginPrefs.edit();
-                        if (rememberCheckBox.isChecked()) {
-                            editor.putString("email", email);
-                            editor.putString("password", password);
-                            editor.putBoolean("remember", true);
-                        } else {
-                            editor.clear();
-                        }
-                        editor.apply();
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            // שמירת פרטי התחברות
+                            SharedPreferences.Editor editor = loginPrefs.edit();
+                            if (rememberCheckBox.isChecked()) {
+                                editor.putString("email", email);
+                                editor.putBoolean("remember", true);
+                            } else {
+                                editor.clear();
+                            }
+                            editor.apply();
 
-                        // מעבר למסך המשימות
-                        Intent intent = new Intent(LoginActivity.this, TasksActivity.class);
-                        startActivity(intent);
-                        finish();
-                    } else {
-                        Toast.makeText(LoginActivity.this,
-                                "Login failed: " + task.getException().getMessage(),
-                                Toast.LENGTH_LONG).show();
+                            // מעבר למסך המשימות
+                            Intent intent = new Intent(LoginActivity.this, TasksActivity.class);
+                            LoginActivity.this.startActivity(intent);
+                            LoginActivity.this.finish();
+                        } else {
+                            String errorMsg = "Unknown error";
+                            if (task.getException() != null)
+                                errorMsg = task.getException().getMessage();
+                            Toast.makeText(LoginActivity.this,
+                                    "Login failed: " + errorMsg,
+                                    Toast.LENGTH_LONG).show();
+                        }
                     }
                 });
     }
 
-    public void register(View view) {
+    public void register() {
         startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
     }
 }
