@@ -25,14 +25,14 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseActivity כדי לקבל את ה-Theme
+public class AdminDashboardActivity extends BaseActivity {
 
     private ConstraintLayout rootLayout;
     private TextView tvTitle, tvSubtitle;
     private RecyclerView rvUsers;
     private InternalUserAdapter userAdapter;
     private List<User> userList;
-    private SharedPreferences.OnSharedPreferenceChangeListener themeListener; // המאזין לשינויים
+    private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,13 +40,13 @@ public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseAc
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin_dashboard);
 
-        // 1. חיבור לרכיבים
+        // חיבור לרכיבים
         rootLayout = findViewById(R.id.rootLayoutAdmin);
         tvTitle = findViewById(R.id.tvAdminTitle);
         tvSubtitle = findViewById(R.id.tvSubtitle);
         rvUsers = findViewById(R.id.rvUsers);
 
-        // 2. הגדרת ה-RecyclerView
+        // הגדרת ה-RecyclerView
         rvUsers.setHasFixedSize(true);
         rvUsers.setLayoutManager(new LinearLayoutManager(this));
 
@@ -54,14 +54,13 @@ public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseAc
         userAdapter = new InternalUserAdapter(this, userList);
         rvUsers.setAdapter(userAdapter);
 
-        // 3. ניהול עיצוב וצבעים
-
-        // הוספת המאזין שגורם למסך להתרענן מיד כשמשנים צבע בהגדרות
+        // ניהול עיצוב וצבעים
+        // רענון מיידי בשינוי Theme
         themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
-                if ("theme".equals(key)) {
-                    AdminDashboardActivity.this.recreate(); // מרענן את כל ה-Activity - לעומת applyThemeColors
+                if (BaseActivity.KEY_THEME.equals(key)) {
+                    AdminDashboardActivity.this.recreate(); // ה recreate מרענן את כל ה-Activity - לעומת applyThemeColors
                 }
             }
         };
@@ -69,21 +68,21 @@ public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseAc
 
         applyThemeColors();
 
-        // 4. טעינת המשתמשים
+        // טעינת המשתמשים
         loadUsersFromFirestore();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // הסרת המאזין כדי למנוע נזילות זיכרון
+        // הסרת המאזין
         if (baseSharedPreferences != null && themeListener != null) {
             baseSharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
     }
 
     private void loadUsersFromFirestore() {
-        Utils.refUsers.get() // שימוש ב-Utils המאוחד שלנו!
+        Utils.refUsers.get()
                 .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
                     @Override
                     public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
@@ -108,7 +107,7 @@ public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseAc
     }
 
     private void applyThemeColors() {
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         int backgroundColor, titleColor, subtitleColor;
 
         switch (theme) {
@@ -134,7 +133,6 @@ public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseAc
         tvSubtitle.setTextColor(subtitleColor);
     }
 
-    // --- האדפטר הפנימי נשאר דומה, רק וידאתי שהוא משתמש ב-Utils למחיקה ---
     public class InternalUserAdapter extends RecyclerView.Adapter<InternalUserAdapter.UserViewHolder> {
         private Context context;
         private List<User> list;
@@ -192,11 +190,12 @@ public class AdminDashboardActivity extends BaseActivity { // שונה ל-BaseAc
             return;
         }
 
+        // TODO: מחיקת משתמש מ-Firebase Auth דורשת Cloud Function
         Utils.refUsers.document(user.getUid()).delete()
                 .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        // למחוק מהרשימה לפי uid (או לפי אותו אובייקט), לא לפי position.
+                        // למחוק מהרשימה לפי uid
                         int indexToRemove = -1;
                         for (int i = 0; i < userList.size(); i++) {
                             if (userList.get(i).getUid().equals(user.getUid())) {

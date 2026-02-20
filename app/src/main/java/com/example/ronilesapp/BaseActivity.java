@@ -18,11 +18,8 @@ public class BaseActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        applySelectedTheme();
+        applySelectedTheme();    // מאתחל את baseSharedPreferences
         super.onCreate(savedInstanceState);
-
-        // SharedPreferences משותף לכל המחלקה — מאותחל ב-onCreate
-        baseSharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         lastTheme = baseSharedPreferences.getString(KEY_THEME, "pink_brown");
     }
 
@@ -31,7 +28,6 @@ public class BaseActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        //prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String currentTheme = baseSharedPreferences.getString(KEY_THEME, "pink_brown");
 
         if (lastTheme != null && !lastTheme.equals(currentTheme)) {
@@ -45,8 +41,8 @@ public class BaseActivity extends AppCompatActivity {
 
 
     protected void applySelectedTheme() {
-        SharedPreferences localPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String theme = localPrefs.getString(KEY_THEME, "pink_brown");
+        baseSharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String theme = baseSharedPreferences.getString(KEY_THEME, "pink_brown");
 
         switch (theme) {
             case "pink_brown":

@@ -13,21 +13,17 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 public class Utils {
 
-    // ==========================================
-    // חלק 1: Firebase References (לשעבר FBRef)
-    // ==========================================
+    // Firebase References
 
     // Firebase Objects
     public static FirebaseAuth mAuth = FirebaseAuth.getInstance();
     public static FirebaseFirestore FBFS = FirebaseFirestore.getInstance();
 
-    // קולקציות ראשיות
+    // collections
     public static CollectionReference refUsers = FBFS.collection("Users");
-    public static CollectionReference refImages = FBFS.collection("Images");
-    public static CollectionReference refTasks = FBFS.collection("tasks");
     public static CollectionReference refSharedTasks = FBFS.collection("SharedTasks");
 
-    // קולקציות פרטיות של המשתמש (משימות)
+    // משימות, collection של המשתמש
     public static CollectionReference getUserTasksRef() {
         if (mAuth.getCurrentUser() != null) {
             String uid = mAuth.getCurrentUser().getUid();
@@ -37,7 +33,7 @@ public class Utils {
             throw new IllegalStateException("User not logged in");
     }
 
-    // קולקציות פרטיות של המשתמש (קטגוריות)
+    // קטגוריות, collection של המשתמש
     public static CollectionReference getUserCategoriesRef() {
         if (mAuth.getCurrentUser() != null) {
             String uid = mAuth.getCurrentUser().getUid();
@@ -47,10 +43,7 @@ public class Utils {
             throw new IllegalStateException("User not logged in");
     }
 
-    // ==========================================
-    // חלק 2: בדיקת אינטרנט (לשעבר NetworkUtil)
-    // ==========================================
-
+    // בדיקת אינטרנט
     public static boolean isConnected(Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null) {
@@ -60,10 +53,7 @@ public class Utils {
         return false;
     }
 
-    // ==========================================
-    // חלק 3: עזרים למצלמה ותמונות (המקורי)
-    // ==========================================
-
+    // helpers למצלמה ותמונות
     public static Uri createImageUri(Context context) {
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.TITLE, "TempImage");

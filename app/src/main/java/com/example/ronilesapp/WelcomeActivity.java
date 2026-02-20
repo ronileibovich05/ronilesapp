@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class WelcomeActivity extends AppCompatActivity {
+    //TODO BaseActivity
 
     private TextView welcomeText;
     private ImageView profileImageView;
@@ -176,7 +177,9 @@ public class WelcomeActivity extends AppCompatActivity {
                             welcomeText.setText("Welcome, " + (newFirstName + " " + newLastName).trim());
                             dialog.dismiss();
                         })
-                        .addOnFailureListener(e -> Toast.makeText(WelcomeActivity.this, "Update failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                        .addOnFailureListener((Exception e) -> {
+                            Toast.makeText(WelcomeActivity.this, "Update failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        });
             }
         });
 
@@ -185,25 +188,40 @@ public class WelcomeActivity extends AppCompatActivity {
 
     private void deleteUser() {
         FirebaseUser user = mAuth.getCurrentUser();
-        if (user == null) return;
+        if (user == null)
+            return;
 
         String uid = user.getUid();
 
-        refUsers.document(uid).delete();
-
-        user.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
-            @Override
-            public void onSuccess(Void unused) {
-                Toast.makeText(WelcomeActivity.this, "User deleted", Toast.LENGTH_SHORT).show();
-                WelcomeActivity.this.goToLogin();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
+        refUsers.document(uid).delete()
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                      @Override
+                      public void onSuccess(Void aVoid) {
+                          user.delete()
+                              .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                  @Override
+                                  public void onSuccess(Void unused) {
+                                      Toast.makeText(WelcomeActivity.this, "User deleted", Toast.LENGTH_SHORT).show();
+                                      WelcomeActivity.this.goToLogin();
+                                  }
+                              })
+                              .addOnFailureListener(new OnFailureListener() {
                                     @Override
                                     public void onFailure(@NonNull Exception e) {
-                                        Toast.makeText(WelcomeActivity.this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(WelcomeActivity.this, "Auth delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 }
-        );
+                              );
+                      }
+                  }
+                )
+                .addOnFailureListener(new OnFailureListener() {
+                      @Override
+                      public void onFailure(@NonNull Exception e) {
+                          Toast.makeText(WelcomeActivity.this, "Firestore delete failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                      }
+                  }
+                );
     }
 
     public void logout(android.view.View view) {

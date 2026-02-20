@@ -111,8 +111,8 @@ public class ProfileActivity extends BaseActivity {
         themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
-                if ("theme".equals(key)) {
-                    ProfileActivity.this.recreate(); //TODO   מרענן את כל ה-Activity כדי שהעיצוב יתעדכן מיד - לעומת applyThemeColors
+                if (BaseActivity.KEY_THEME.equals(key)) {
+                    ProfileActivity.this.recreate();    // ה recreate מרענן את כל ה-Activity - לעומת applyThemeColors
                 }
             }
         };
@@ -141,6 +141,8 @@ public class ProfileActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        // הסרת המאזין
         if (baseSharedPreferences != null && themeListener != null) {
             baseSharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
@@ -183,7 +185,7 @@ public class ProfileActivity extends BaseActivity {
     }
 
     private void applyThemeColors() {
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         int backgroundColor, textColor, buttonColor;
 
         switch (theme) {
@@ -231,12 +233,12 @@ public class ProfileActivity extends BaseActivity {
                 if (task.isSuccessful()) {
                     DocumentSnapshot doc = task.getResult();
                     if (doc != null && doc.exists()) {
-                        // טעינת הטקסטים הרגילים
+                        // טעינת הטקסטים
                         tvFirstName.setText(doc.getString("firstName"));
                         tvLastName.setText(doc.getString("lastName"));
                         tvEmail.setText(doc.getString("email"));
 
-                        // --- התיקון לתמונה ---
+                        // תמונה
                         String imageString = doc.getString("profileImageUrl");
 
                         if (imageString != null && !imageString.isEmpty()) {
@@ -271,7 +273,7 @@ public class ProfileActivity extends BaseActivity {
         inputLastName.setText(tvLastName.getText().toString());
         layout.addView(inputLastName);
 
-        // --- הוספת שדה לעריכת תמונה ---
+        // לתמונה
         final EditText inputImageUrl = new EditText(this);
         inputImageUrl.setHint("Image URL (leave empty to keep current)");
         inputImageUrl.setText(currentProfileImageUrl); // מציג את הקישור הקיים אם יש
@@ -293,7 +295,7 @@ public class ProfileActivity extends BaseActivity {
         builder.show();
     }
 
-    // הפונקציה המעודכנת שמקבלת גם URL
+    // הפונקציה שמקבלת גם URL
     private void updateUserProfile(String firstName, String lastName, String imageUrl) {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null)
@@ -312,7 +314,7 @@ public class ProfileActivity extends BaseActivity {
 
                         // רענון התמונה במסך מיד עם Glide
                         if (!imageUrl.isEmpty()) {
-                            loadImageFromString(imageUrl); // ← במקום כל הבלוק
+                            loadImageFromString(imageUrl);
                         } else {
                             profileImageView.setImageResource(R.drawable.ic_default_profile);
                         }

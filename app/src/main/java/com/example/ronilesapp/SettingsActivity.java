@@ -71,15 +71,15 @@ public class SettingsActivity extends BaseActivity {
 
         // --- טעינת הגדרות והחלת עיצוב ---
         loadSettings();
-        //Todo not needed? applyThemeColors();
+        //Todo applyThemeColors not needed because we have recreate
         setAppVersion();
 
 
         themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
-                if ("theme".equals(key)) {
-                    SettingsActivity.this.recreate();
+                if (BaseActivity.KEY_THEME.equals(key)) {
+                    SettingsActivity.this.recreate();   // TODO ה recreate מרענן את כל ה-Activity - לעומת applyThemeColors
                 }
             }
         };
@@ -108,18 +108,17 @@ public class SettingsActivity extends BaseActivity {
             }
         });
 
-        // שינוי ערכת נושא - כאן הוספתי את ה-recreate()
+        // שינוי ערכת נושא
         radioGroupTheme.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
                 SharedPreferences.Editor editor = baseSharedPreferences.edit();
-                if (checkedId == R.id.rbPinkBrown) editor.putString("theme", "pink_brown");
-                else if (checkedId == R.id.rbBlueWhite) editor.putString("theme", "blue_white");
-                else if (checkedId == R.id.rbGreenWhite) editor.putString("theme", "green_white");
+                if (checkedId == R.id.rbPinkBrown) editor.putString(BaseActivity.KEY_THEME, "pink_brown");
+                else if (checkedId == R.id.rbBlueWhite) editor.putString(BaseActivity.KEY_THEME, "blue_white");
+                else if (checkedId == R.id.rbGreenWhite) editor.putString(BaseActivity.KEY_THEME, "green_white");
                 editor.apply();
 
-                // רענון המסך מיד כדי לראות את השינוי
-                // מיותר בגלל המאזין
+                // recreate() מטופל על ידי המאזין
                 // SettingsActivity.this.recreate();
             }
         });
@@ -166,7 +165,7 @@ public class SettingsActivity extends BaseActivity {
         boolean notificationsEnabled = baseSharedPreferences.getBoolean("notifications_enabled", true);
         switchNotifications.setChecked(notificationsEnabled);
 
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         switch (theme) {
             case "pink_brown": rbPinkBrown.setChecked(true); break;
             case "blue_white": rbBlueWhite.setChecked(true); break;
@@ -175,7 +174,7 @@ public class SettingsActivity extends BaseActivity {
     }
 
     private void applyThemeColors() {
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         int backgroundColor, textColor;
 
         switch (theme) {

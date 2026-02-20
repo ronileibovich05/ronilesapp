@@ -24,6 +24,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 
 public class UserActivity extends AppCompatActivity {
+    //TODO BaseActivity
 
     private TextView tvName, tvEmail;
     private ImageView profileImageView;
@@ -85,12 +86,12 @@ public class UserActivity extends AppCompatActivity {
                         profileImageView.setImageResource(R.drawable.ic_default_profile);
                     }
                 } else {
-                    String errMsg = "Unknown error";
+                    String errorMsg = "Unknown error";
                     Exception e = task.getException();
                     if (e != null)
-                        errMsg = e.getMessage();
+                        errorMsg = e.getMessage();
                     Toast.makeText(UserActivity.this, "שגיאה בטעינת נתונים: " +
-                            errMsg, Toast.LENGTH_LONG).show();
+                            errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
         });

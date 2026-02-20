@@ -98,9 +98,9 @@ public class TasksActivity extends BaseActivity {
         fabAddTask.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // בדיקה גם בלחיצה
+
                 if (!Utils.isConnected(TasksActivity.this)) {
-                    TasksActivity.this.checkInternet(); // שימוש בפונקציה החדשה שמציגה דיאלוג יפה
+                    TasksActivity.this.checkInternet(); // שימוש בפונקציה שמציגה דיאלוג
                     return;
                 }
                 addTaskLauncher.launch(new Intent(TasksActivity.this, AddTaskActivity.class));
@@ -118,8 +118,8 @@ public class TasksActivity extends BaseActivity {
         themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
-                if ("theme".equals(key)) {
-                    TasksActivity.this.applyThemeColors();
+                if (BaseActivity.KEY_THEME.equals(key)) {
+                    TasksActivity.this.applyThemeColors();  // ה recreate מרענן את כל ה-Activity - לעומת applyThemeColors
                 }
             }
         };
@@ -158,6 +158,7 @@ public class TasksActivity extends BaseActivity {
             tabMediator = null;
         }
 
+        // הסרת המאזין
         if (themeListener != null && baseSharedPreferences != null) {
             baseSharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
@@ -176,7 +177,7 @@ public class TasksActivity extends BaseActivity {
     }
 
     private void applyThemeColors() {
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         int backgroundColor, fabColor, buttonColor, tabSelectedColor, tabUnselectedColor, textColor;
 
         switch (theme) {
@@ -224,7 +225,7 @@ public class TasksActivity extends BaseActivity {
 
     void loadCategoriesAndTasks() {
         if (!Utils.isConnected(this)) {
-            // כבר יש בדיקה ב-onStart, אבל ליתר ביטחון נשאיר כאן Toast
+            // יש בדיקה גם ב-onStart
             Toast.makeText(this, "No Internet Connection.", Toast.LENGTH_LONG).show();
             return;
         }

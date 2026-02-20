@@ -157,7 +157,7 @@ public class RegisterActivity extends BaseActivity {
     }
 
     private void applyThemeColors() {
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         int buttonColor;
 
         switch (theme) {
@@ -172,12 +172,9 @@ public class RegisterActivity extends BaseActivity {
                 break;
         }
 
-        if (btnRegister != null)
-            btnRegister.setBackgroundTintList(ColorStateList.valueOf(buttonColor));
+        btnRegister.setBackgroundTintList(ColorStateList.valueOf(buttonColor));
 
-        if (notificationsCheckBox != null) {
-            notificationsCheckBox.setButtonTintList(ColorStateList.valueOf(buttonColor));
-        }
+        notificationsCheckBox.setButtonTintList(ColorStateList.valueOf(buttonColor));
     }
 
     public void takePhoto() {
@@ -210,7 +207,7 @@ public class RegisterActivity extends BaseActivity {
         return File.createTempFile(imageFileName, ".jpg", storageDir);
     }
 
-    // --- הלב של השיטה החדשה: המרה לטקסט ---
+    // המרה לטקסט
     private String encodeImageToBase64(Uri imageUri) {
         try {
             InputStream inputStream = getContentResolver().openInputStream(imageUri);
@@ -247,7 +244,6 @@ public class RegisterActivity extends BaseActivity {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            // SuccessListener
                             FirebaseUser user = mAuth.getCurrentUser();
                             if (user != null) {
                                 String uid = user.getUid();
@@ -256,16 +252,15 @@ public class RegisterActivity extends BaseActivity {
                                 // אם יש תמונה - ממירים אותה לטקסט
                                 if (selectedImageUri != null) {
                                     imageString = RegisterActivity.this.encodeImageToBase64(selectedImageUri);
-                                    if (imageString == null) imageString = ""; // אם נכשל, נשמור ריק
+                                    if (imageString == null)
+                                        imageString = "";
                                 }
 
-                                // שומרים ישירות ב-Firestore
-                                // בנאי: uid, firstName, lastName, email, notifications, imageString, isAdmin
+                                // שומרים ב-Firestore
                                 User newUser = new User(uid, firstName, lastName, email, notifications, imageString, false);
                                 saveUserData(newUser);
                             }
                         } else {
-                            // FailureListener
                             if (task.getException() instanceof FirebaseAuthUserCollisionException) {
                                 Toast.makeText(RegisterActivity.this, "Email already exists", Toast.LENGTH_SHORT).show();
                             } else {

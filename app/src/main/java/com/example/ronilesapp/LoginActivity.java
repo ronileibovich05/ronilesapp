@@ -18,7 +18,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 
-// 1. שינוי: יורש מ-BaseActivity כדי לקבל את הרקע המשתנה
 public class LoginActivity extends BaseActivity {
 
     private FirebaseAuth mAuth;
@@ -57,7 +56,7 @@ public class LoginActivity extends BaseActivity {
             }
         });
 
-        // לוגיקה קיימת: בדיקה אם נשמרו פרטי התחברות
+        // בדיקה אם נשמרו פרטי התחברות
         loginPrefs = getSharedPreferences("loginPrefs", MODE_PRIVATE);
         boolean remember = loginPrefs.getBoolean("remember", false);
 
@@ -67,16 +66,15 @@ public class LoginActivity extends BaseActivity {
             rememberCheckBox.setChecked(true);
         }
 
-        // 2. החלת הצבעים
+        // החלת הצבעים
         applyThemeColors();
     }
 
     // פונקציה לצביעת הכפתורים וה-CheckBox לפי ה-Theme
     private void applyThemeColors() {
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         int primaryColor;
 
-        // בחירת הצבע הנכון לפי ה-Theme
         switch (theme) {
             case "blue_white":
                 primaryColor = ContextCompat.getColor(this, R.color.blue_primary);
@@ -90,19 +88,11 @@ public class LoginActivity extends BaseActivity {
         }
 
         // שימוש ב-Tint במקום ב-BackgroundColor כדי לשמור על הצורה (הפינות המעוגלות)
-        if (btnLogin != null) {
-            btnLogin.setBackgroundTintList(ColorStateList.valueOf(primaryColor));
-        }
+        btnLogin.setBackgroundTintList(ColorStateList.valueOf(primaryColor));
 
-        // נצבע גם את כפתור ה-Register אם מצאת אותו ב-onCreate
-        if (btnGoToRegister != null) {
-            btnGoToRegister.setBackgroundTintList(ColorStateList.valueOf(primaryColor));
-        }
+        btnGoToRegister.setBackgroundTintList(ColorStateList.valueOf(primaryColor));
 
-        // צביעת ה-CheckBox
-        if (rememberCheckBox != null) {
-            rememberCheckBox.setButtonTintList(ColorStateList.valueOf(primaryColor));
-        }
+        rememberCheckBox.setButtonTintList(ColorStateList.valueOf(primaryColor));
     }
 
     public void login() {

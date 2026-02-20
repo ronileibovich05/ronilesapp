@@ -27,7 +27,7 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AddTaskActivity extends BaseActivity { // שינינו את השם כאן
+public class AddTaskActivity extends BaseActivity {
 
     private EditText editTaskTitle, editTaskDescription;
     private DatePicker datePicker;
@@ -35,7 +35,7 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
     private Spinner spinnerCategory;
     private Button btnAddCategory;
     private Button btnCancelTask;
-    private Button btnSaveTask; // הוספנו משתנה לכפתור השמירה
+    private Button btnSaveTask;
 
     private ArrayAdapter<String> categoryAdapter;
 
@@ -47,7 +47,6 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // הגדרות Theme לפני הכל
         applySelectedTheme();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
@@ -101,22 +100,19 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
             }
         });
 
-        // חיבור כפתור השמירה לפונקציה
-        if (btnSaveTask != null) {
-            btnSaveTask.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    AddTaskActivity.this.saveTask(v);
-                }
-            });
-        }
+        btnSaveTask.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AddTaskActivity.this.saveTask(v);
+            }
+        });
 
         // האזנה לשינויי צבעים
         themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
-                if ("theme".equals(key)) {
-                    AddTaskActivity.this.applyThemeColors();
+                if (BaseActivity.KEY_THEME.equals(key)) {
+                    AddTaskActivity.this.applyThemeColors();    // ה recreate מרענן את כל ה-Activity - לעומת applyThemeColors
                 }
             }
         };
@@ -130,13 +126,15 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        // הסרת המאזין
         if (themeListener != null && baseSharedPreferences != null) {
             baseSharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
     }
 
     private void applyThemeColors() {
-        String theme = baseSharedPreferences.getString("theme", "pink_brown");
+        String theme = baseSharedPreferences.getString(BaseActivity.KEY_THEME, "pink_brown");
         int backgroundColor, buttonColor, textColor;
 
         switch (theme) {
@@ -186,7 +184,6 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
         }
 
         categoryList.clear();
-        // תיקון: שימוש ב-Utils במקום FBRef
         Utils.getUserCategoriesRef().get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
@@ -238,7 +235,6 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
 
     private void saveNewCategory(String categoryName) {
         Category category = new Category(categoryName);
-        // תיקון: שימוש ב-Utils במקום FBRef
         Utils.getUserCategoriesRef().document(categoryName)
                 .set(category)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -269,7 +265,7 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
         String description = editTaskDescription.getText().toString().trim();
 
         int day = datePicker.getDayOfMonth();
-        int month = datePicker.getMonth(); // 0-11
+        int month = datePicker.getMonth() + 1; // 1-12
         int year = datePicker.getYear();
         int hour = timePicker.getHour();
         int minute = timePicker.getMinute();
@@ -287,14 +283,12 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
         if (taskIdToEdit != null) {
             finalTaskId = taskIdToEdit;
         } else {
-            // תיקון: שימוש ב-Utils
             finalTaskId = Utils.getUserTasksRef().document().getId();
         }
 
-        // יצירת משימה חדשה (month+1 כי נשמר 1-12)
-        UserTask newTask = new UserTask(finalTaskId, title, description, day, month + 1, year, hour, minute, category, false);
+        // יצירת משימה חדשה
+        UserTask newTask = new UserTask(finalTaskId, title, description, day, month, year, hour, minute, category, false);
 
-        // תיקון: שימוש ב-Utils
         Utils.getUserTasksRef().document(finalTaskId).set(newTask)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
@@ -306,7 +300,7 @@ public class AddTaskActivity extends BaseActivity { // שינינו את השם 
                                 finalTaskId,
                                 title,
                                 year,
-                                month + 1,
+                                month,
                                 day,
                                 hour,
                                 minute

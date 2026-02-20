@@ -2,6 +2,7 @@ package com.example.ronilesapp;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -23,9 +24,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +74,7 @@ public class CategoryTasksFragment extends Fragment {
 
         SharedPreferences prefs = getActivity()
                 .getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
-        String theme = prefs.getString("theme", "pink_brown");
+        String theme = prefs.getString(BaseActivity.KEY_THEME, "pink_brown");
 
         int themeResId;
         switch (theme) {
@@ -104,40 +108,44 @@ public class CategoryTasksFragment extends Fragment {
             @Override public void afterTextChanged(Editable s) { }
         });
 
-        // --- תיקון הלוגיקה: עדכון במקום מחיקה ---
         adapter = new TasksAdapter(displayedTaskList,
-                (task, isChecked) -> {
-                    if (isChecked) {
-                        String docId = task.getId() != null ? task.getId() : task.getTitle();
+                new TasksAdapter.OnTaskCheckedListener() {
+                    @Override
+                    public void onTaskChecked(UserTask task, boolean isChecked) {
+                        if (isChecked) {
+                            String docId = task.getId() != null ? task.getId() : task.getTitle();
 
-                        // 1. במקום למחוק, אנחנו מעדכנים ל-Done = true
-                        Utils.getUserTasksRef().document(docId).update("done", true)
-                                .addOnSuccessListener(aVoid -> {
-                                    NotificationHelper.cancelNotification(getContext(), docId);
+                            // עדכון סטטוס משימה
+                            Utils.getUserTasksRef().document(docId).update("done", true)
+                                    .addOnSuccessListener(aVoid -> {
+                                        NotificationHelper.cancelNotification(CategoryTasksFragment.this.getContext(), docId);
 
-                                    // 2. Snackbar עם Undo
-                                    Snackbar.make(recyclerView, "Task Completed", 3500)
-                                            .setAction("UNDO", v -> {
-                                                // 3. אם התחרטנו - מחזירים ל-Done = false
-                                                Utils.getUserTasksRef().document(docId).update("done", false);
-                                            })
-                                            .setActionTextColor(getResources().getColor(android.R.color.holo_orange_light))
-                                            .show();
-                                });
+                                        // Snackbar עם אפשרות ביטול
+                                        Snackbar.make(recyclerView, "Task Completed", 3500)
+                                                .setAction("UNDO", v -> {
+                                                    Utils.getUserTasksRef().document(docId).update("done", false);
+                                                })
+                                                .setActionTextColor(CategoryTasksFragment.this.getResources().getColor(android.R.color.holo_orange_light))
+                                                .show();
+                                    });
+                        }
                     }
                 },
-                task -> {
-                    android.content.Intent intent = new android.content.Intent(getContext(), AddTaskActivity.class);
-                    intent.putExtra("taskId", task.getId());
-                    intent.putExtra("title", task.getTitle());
-                    intent.putExtra("desc", task.getDescription());
-                    intent.putExtra("category", task.getCategory());
-                    intent.putExtra("day", task.getDay());
-                    intent.putExtra("month", task.getMonth());
-                    intent.putExtra("year", task.getYear());
-                    intent.putExtra("hour", task.getHour());
-                    intent.putExtra("minute", task.getMinute());
-                    startActivity(intent);
+                new TasksAdapter.OnTaskClickListener() {
+                    @Override
+                    public void onTaskClick(UserTask task) {
+                        android.content.Intent intent = new android.content.Intent(CategoryTasksFragment.this.getContext(), AddTaskActivity.class);
+                        intent.putExtra("taskId", task.getId());
+                        intent.putExtra("title", task.getTitle());
+                        intent.putExtra("desc", task.getDescription());
+                        intent.putExtra("category", task.getCategory());
+                        intent.putExtra("day", task.getDay());
+                        intent.putExtra("month", task.getMonth());
+                        intent.putExtra("year", task.getYear());
+                        intent.putExtra("hour", task.getHour());
+                        intent.putExtra("minute", task.getMinute());
+                        CategoryTasksFragment.this.startActivity(intent);
+                    }
                 }
         );
 
@@ -162,7 +170,12 @@ public class CategoryTasksFragment extends Fragment {
 
         btnDeleteCategory = view.findViewById(R.id.btnDeleteCategory);
         if ("All Tasks".equals(category)) btnDeleteCategory.setVisibility(View.GONE);
-        else btnDeleteCategory.setOnClickListener(v -> deleteCategory());
+        else btnDeleteCategory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                CategoryTasksFragment.this.deleteCategory();
+            }
+        });
 
         return view;
     }
@@ -187,40 +200,44 @@ public class CategoryTasksFragment extends Fragment {
             query = Utils.getUserTasksRef().whereEqualTo("category", category);
         }
 
-        firestoreListener = query.addSnapshotListener((value, error) -> {
-            if (error != null) {
-                Toast.makeText(getContext(), "Error loading tasks", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        firestoreListener = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                if (error != null) {
+                    Toast.makeText(CategoryTasksFragment.this.getContext(), "Error loading tasks", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-            if (value != null) {
-                taskList.clear();
-                for (QueryDocumentSnapshot doc : value) {
-                    UserTask taskObj = doc.toObject(UserTask.class);
-                    taskObj.setId(doc.getId());
-                    if (taskObj.getCategory() == null) taskObj.setCategory("No Category");
+                if (value != null) {
+                    taskList.clear();
+                    for (QueryDocumentSnapshot doc : value) {
+                        UserTask taskObj = doc.toObject(UserTask.class);
+                        taskObj.setId(doc.getId());
+                        if (taskObj.getCategory() == null) taskObj.setCategory("No Category");
 
-                    if (!category.equals("All Tasks") && !taskObj.getCategory().equals(category)) continue;
+                        if (!category.equals("All Tasks") && !taskObj.getCategory().equals(category))
+                            continue;
 
-                    // --- השינוי החשוב: לא להציג משימות שכבר בוצעו ---
-                    if (taskObj.isDone()) {
-                        continue; // מדלגים על המשימה הזו, היא לא תיכנס לרשימה
+                        // סינון משימות שהושלמו
+                        if (taskObj.isDone()) {
+                            continue; // מדלגים על המשימה הזו
+                        }
+                        // --------------------------------------------------
+
+                        taskList.add(taskObj);
                     }
-                    // --------------------------------------------------
 
-                    taskList.add(taskObj);
+                    String currentSearch = searchEditText.getText().toString();
+                    if (currentSearch.isEmpty()) {
+                        displayedTaskList.clear();
+                        displayedTaskList.addAll(taskList);
+                    } else {
+                        CategoryTasksFragment.this.filterTasks(currentSearch);
+                    }
+
+                    CategoryTasksFragment.this.sortTasks(currentSortOption);
+                    CategoryTasksFragment.this.updateEmptyState();
                 }
-
-                String currentSearch = searchEditText.getText().toString();
-                if (currentSearch.isEmpty()) {
-                    displayedTaskList.clear();
-                    displayedTaskList.addAll(taskList);
-                } else {
-                    filterTasks(currentSearch);
-                }
-
-                sortTasks(currentSortOption);
-                updateEmptyState();
             }
         });
     }
@@ -278,22 +295,25 @@ public class CategoryTasksFragment extends Fragment {
         new AlertDialog.Builder(getContext())
                 .setTitle("Delete Category")
                 .setMessage("Are you sure you want to delete '" + category + "'?")
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    Utils.getUserTasksRef().whereEqualTo("category", category).get()
-                            .addOnCompleteListener(task -> {
-                                if (task.isSuccessful()) {
-                                    for (QueryDocumentSnapshot doc : task.getResult())
-                                        doc.getReference().update("category", "No Category");
+                .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Utils.getUserTasksRef().whereEqualTo("category", category).get()
+                                .addOnCompleteListener(task -> {
+                                    if (task.isSuccessful()) {
+                                        for (QueryDocumentSnapshot doc : task.getResult())
+                                            doc.getReference().update("category", "No Category");
 
-                                    Utils.getUserCategoriesRef().document(category).delete()
-                                            .addOnSuccessListener(aVoid -> {
-                                                Toast.makeText(getContext(), "Category Removed", Toast.LENGTH_SHORT).show();
-                                                if (getActivity() instanceof TasksActivity) {
-                                                    ((TasksActivity) getActivity()).loadCategoriesAndTasks();
-                                                }
-                                            });
-                                }
-                            });
+                                        Utils.getUserCategoriesRef().document(category).delete()
+                                                .addOnSuccessListener(aVoid -> {
+                                                    Toast.makeText(CategoryTasksFragment.this.getContext(), "Category Removed", Toast.LENGTH_SHORT).show();
+                                                    if (CategoryTasksFragment.this.getActivity() instanceof TasksActivity) {
+                                                        ((TasksActivity) CategoryTasksFragment.this.getActivity()).loadCategoriesAndTasks();
+                                                    }
+                                                });
+                                    }
+                                });
+                    }
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
