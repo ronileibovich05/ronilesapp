@@ -51,7 +51,6 @@ public class AddTaskActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
 
-        // חיבור לרכיבים
         editTaskTitle = findViewById(R.id.editTextTaskTitle);
         editTaskDescription = findViewById(R.id.editTextTaskDescription);
         datePicker = findViewById(R.id.datePickerTask);
@@ -67,7 +66,6 @@ public class AddTaskActivity extends BaseActivity {
         categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(categoryAdapter);
 
-        // בדיקה האם הגענו לעריכה (Edit) או יצירה חדשה
         if (getIntent() != null && getIntent().hasExtra("taskId")) {
             taskIdToEdit = getIntent().getStringExtra("taskId");
 
@@ -85,7 +83,6 @@ public class AddTaskActivity extends BaseActivity {
             timePicker.setMinute(min);
         }
 
-        // מאזינים
         btnAddCategory.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -107,7 +104,6 @@ public class AddTaskActivity extends BaseActivity {
             }
         });
 
-        // האזנה לשינויי צבעים
         themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
@@ -127,7 +123,6 @@ public class AddTaskActivity extends BaseActivity {
     protected void onDestroy() {
         super.onDestroy();
 
-        // הסרת המאזין
         if (themeListener != null && baseSharedPreferences != null) {
             baseSharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
@@ -286,7 +281,6 @@ public class AddTaskActivity extends BaseActivity {
             finalTaskId = Utils.getUserTasksRef().document().getId();
         }
 
-        // יצירת משימה חדשה
         UserTask newTask = new UserTask(finalTaskId, title, description, day, month, year, hour, minute, category, false);
 
         Utils.getUserTasksRef().document(finalTaskId).set(newTask)
@@ -294,7 +288,6 @@ public class AddTaskActivity extends BaseActivity {
                     @Override
                     public void onSuccess(Void aVoid) {
 
-                        // תזמון התראה
                         NotificationHelper.scheduleNotification(
                                 AddTaskActivity.this,
                                 finalTaskId,

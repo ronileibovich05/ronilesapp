@@ -17,10 +17,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,13 +37,11 @@ public class AdminDashboardActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin_dashboard);
 
-        // חיבור לרכיבים
         rootLayout = findViewById(R.id.rootLayoutAdmin);
         tvTitle = findViewById(R.id.tvAdminTitle);
         tvSubtitle = findViewById(R.id.tvSubtitle);
         rvUsers = findViewById(R.id.rvUsers);
 
-        // הגדרת ה-RecyclerView
         rvUsers.setHasFixedSize(true);
         rvUsers.setLayoutManager(new LinearLayoutManager(this));
 
@@ -54,28 +49,20 @@ public class AdminDashboardActivity extends BaseActivity {
         userAdapter = new InternalUserAdapter(this, userList);
         rvUsers.setAdapter(userAdapter);
 
-        // ניהול עיצוב וצבעים
-        // רענון מיידי בשינוי Theme
-        themeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences prefs, @Nullable String key) {
-                if (BaseActivity.KEY_THEME.equals(key)) {
-                    AdminDashboardActivity.this.recreate(); // ה recreate מרענן את כל ה-Activity - לעומת applyThemeColors
-                }
+        themeListener = (prefs, key) -> {
+            if (BaseActivity.KEY_THEME.equals(key)) {
+                recreate();
             }
         };
         baseSharedPreferences.registerOnSharedPreferenceChangeListener(themeListener);
 
         applyThemeColors();
-
-        // טעינת המשתמשים
         loadUsersFromFirestore();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // הסרת המאזין
         if (baseSharedPreferences != null && themeListener != null) {
             baseSharedPreferences.unregisterOnSharedPreferenceChangeListener(themeListener);
         }
@@ -83,27 +70,19 @@ public class AdminDashboardActivity extends BaseActivity {
 
     private void loadUsersFromFirestore() {
         Utils.refUsers.get()
-                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
-                    @Override
-                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
-                        userList.clear();
-                        for (DocumentSnapshot document : queryDocumentSnapshots) {
-                            User user = document.toObject(User.class);
-                            if (user != null) {
-                                user.setUid(document.getId());
-                                if (user.getProfileImageUrl() == null) user.setProfileImageUrl("");
-                                userList.add(user);
-                            }
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    userList.clear();
+                    for (DocumentSnapshot document : queryDocumentSnapshots) {
+                        User user = document.toObject(User.class);
+                        if (user != null) {
+                            user.setUid(document.getId());
+                            if (user.getProfileImageUrl() == null) user.setProfileImageUrl("");
+                            userList.add(user);
                         }
-                        userAdapter.notifyDataSetChanged();
                     }
+                    userAdapter.notifyDataSetChanged();
                 })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(AdminDashboardActivity.this, "Error loading users", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                .addOnFailureListener(e -> Toast.makeText(AdminDashboardActivity.this, "Error loading users", Toast.LENGTH_SHORT).show());
     }
 
     private void applyThemeColors() {
@@ -121,7 +100,7 @@ public class AdminDashboardActivity extends BaseActivity {
                 titleColor = getResources().getColor(R.color.green_primary);
                 subtitleColor = getResources().getColor(android.R.color.black);
                 break;
-            default: // pink_brown
+            default:
                 backgroundColor = getResources().getColor(R.color.pink_background);
                 titleColor = getResources().getColor(R.color.pink_primary);
                 subtitleColor = getResources().getColor(R.color.brown);
@@ -154,14 +133,11 @@ public class AdminDashboardActivity extends BaseActivity {
             User user = list.get(position);
             holder.tvName.setText(user.getFirstName() + " " + user.getLastName());
             holder.tvEmail.setText(user.getEmail());
-            holder.btnDelete.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int pos = holder.getAdapterPosition();
-                    if (pos == RecyclerView.NO_POSITION)
-                        return;
 
-                    AdminDashboardActivity.this.deleteUser(user);
+            holder.btnDelete.setOnClickListener(v -> {
+                int pos = holder.getAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    deleteUser(user);
                 }
             });
         }
@@ -190,35 +166,22 @@ public class AdminDashboardActivity extends BaseActivity {
             return;
         }
 
-        // TODO: מחיקת משתמש מ-Firebase Auth דורשת Cloud Function
         Utils.refUsers.document(user.getUid()).delete()
-                .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        // למחוק מהרשימה לפי uid
-                        int indexToRemove = -1;
-                        for (int i = 0; i < userList.size(); i++) {
-                            if (userList.get(i).getUid().equals(user.getUid())) {
-                                indexToRemove = i;
-                                break;
-                            }
+                .addOnSuccessListener(aVoid -> {
+                    int indexToRemove = -1;
+                    for (int i = 0; i < userList.size(); i++) {
+                        if (userList.get(i).getUid().equals(user.getUid())) {
+                            indexToRemove = i;
+                            break;
                         }
-                        if (indexToRemove != -1) {
-                            userList.remove(indexToRemove);
-                            userAdapter.notifyItemRemoved(indexToRemove);
-                            userAdapter.notifyItemRangeChanged(indexToRemove, userList.size());
-                        } else {
-                            userAdapter.notifyDataSetChanged();
-                        }
-                        Toast.makeText(AdminDashboardActivity.this, "User Deleted", Toast.LENGTH_SHORT).show();
                     }
+                    if (indexToRemove != -1) {
+                        userList.remove(indexToRemove);
+                        userAdapter.notifyItemRemoved(indexToRemove);
+                        userAdapter.notifyItemRangeChanged(indexToRemove, userList.size());
+                    }
+                    Toast.makeText(AdminDashboardActivity.this, "User deleted successfully", Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(AdminDashboardActivity.this, "Delete failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-        ;
+                .addOnFailureListener(e -> Toast.makeText(AdminDashboardActivity.this, "Delete failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 }

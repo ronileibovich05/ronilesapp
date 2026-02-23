@@ -5,23 +5,20 @@ import static com.example.ronilesapp.Utils.refSharedTasks;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.util.List;
 
@@ -31,11 +28,13 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
     private final OnTaskCheckedListener listener;
     private final OnTaskClickListener clickListener;
 
-    // ממשקים
-    public interface OnTaskCheckedListener { void onTaskChecked(UserTask userTask, boolean isChecked); }
-    public interface OnTaskClickListener { void onTaskClick(UserTask userTask); }
+    public interface OnTaskCheckedListener {
+        void onTaskChecked(UserTask userTask, boolean isChecked);
+    }
+    public interface OnTaskClickListener {
+        void onTaskClick(UserTask userTask);
+    }
 
-    // בנאי
     public TasksAdapter(List<UserTask> taskList, OnTaskCheckedListener listener, OnTaskClickListener clickListener) {
         this.taskList = taskList;
         this.listener = listener;
@@ -52,7 +51,7 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
     @Override
     public void onBindViewHolder(@NonNull TaskViewHolder holder, int position) {
         UserTask userTask = taskList.get(position);
-        Context context = holder.itemView.getContext(); // השגת ה-Context לצורך חלוניות
+        Context context = holder.itemView.getContext();
 
         holder.tvTitle.setText(userTask.getTitle());
         holder.tvDescription.setText(userTask.getDescription());
@@ -62,37 +61,34 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         String timeString = String.format("%02d:%02d", userTask.getHour(), userTask.getMinute());
 
         holder.tvDay.setText("Date: " + dateString);
-        holder.tvHour.setText("Hour: " + timeString);
+        holder.tvHour.setText("Time: " + timeString);
 
-        // טיפול ב-CheckBox
+        // טיפול בעיצוב של משימה שהושלמה (Strikethrough)
+        if (userTask.isDone()) {
+            holder.tvTitle.setPaintFlags(holder.tvTitle.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            holder.tvTitle.setTextColor(ContextCompat.getColor(context, android.R.color.darker_gray));
+        } else {
+            holder.tvTitle.setPaintFlags(holder.tvTitle.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
+            holder.tvTitle.setTextColor(ContextCompat.getColor(context, android.R.color.black));
+        }
+
         holder.checkBoxDone.setOnCheckedChangeListener(null);
         holder.checkBoxDone.setChecked(userTask.isDone());
-        holder.checkBoxDone.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (listener != null)
-                    listener.onTaskChecked(userTask, isChecked);
+
+        holder.checkBoxDone.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (listener != null) {
+                listener.onTaskChecked(userTask, isChecked);
             }
         });
 
-        // לחיצה על כפתור עריכה (EDIT)
-        holder.tvEditButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (clickListener != null) {
-                    clickListener.onTaskClick(userTask);
-                }
+        holder.tvEditButton.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onTaskClick(userTask);
             }
         });
 
-        // לחיצה על כפתור השיתוף (SHARE)
         if (holder.btnShare != null) {
-            holder.btnShare.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    TasksAdapter.this.showShareDialog(context, userTask);
-                }
-            });
+            holder.btnShare.setOnClickListener(v -> showShareDialog(context, userTask));
         }
     }
 
@@ -101,9 +97,7 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         return taskList.size();
     }
 
-    // פונקציות עזר לשיתוף משימות
     private void showShareDialog(Context context, UserTask userTask) {
-
         if (!Utils.isConnected(context)) {
             Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show();
             return;
@@ -117,97 +111,70 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         input.setHint("email@example.com");
         builder.setView(input);
 
-        builder.setPositiveButton("Share", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String email = input.getText().toString().trim();
-                if (!email.isEmpty()) {
-                    TasksAdapter.this.shareTaskWithUser(context, userTask, email);
-                }
+        builder.setPositiveButton("Share", (dialog, which) -> {
+            String email = input.getText().toString().trim();
+            if (!email.isEmpty()) {
+                shareTaskWithUser(context, userTask, email);
+            } else {
+                Toast.makeText(context, "Email cannot be empty", Toast.LENGTH_SHORT).show();
             }
         });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
         builder.show();
     }
 
     private void shareTaskWithUser(Context context, UserTask userTask, String receiverEmail) {
-
         if (!Utils.isConnected(context)) {
             Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // בדיקה שמשתמש מחובר
-        if (mAuth.getCurrentUser() == null)
-            return;
+        if (mAuth.getCurrentUser() == null) return;
 
         String senderEmail = mAuth.getCurrentUser().getEmail();
 
-        if (senderEmail != null && senderEmail.equals(receiverEmail)) {
-            Toast.makeText(context, "Cannot share with yourself!", Toast.LENGTH_SHORT).show();
+        if (senderEmail != null && senderEmail.equalsIgnoreCase(receiverEmail)) {
+            Toast.makeText(context, "Cannot share a task with yourself!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // 1. שמירה ב-Firebase (כמו שעשינו קודם)
         String shareId = refSharedTasks.document().getId();
         SharedTask sharedTask = new SharedTask(shareId, senderEmail, receiverEmail, userTask.getId());
 
         refSharedTasks.document(shareId)
                 .set(sharedTask)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Toast.makeText(context, "Task Shared in Database!", Toast.LENGTH_SHORT).show();
-
-                        // 2. שליחת אימייל אמיתי
-                        TasksAdapter.this.sendRealEmail(context, receiverEmail, userTask);
-                    }
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(context, "Task shared successfully!", Toast.LENGTH_SHORT).show();
+                    openShareMenu(context, userTask);
                 })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(context, "Error sharing task", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                .addOnFailureListener(e -> Toast.makeText(context, "Error sharing task: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    // פונקציה חדשה שפותחת את ה-Gmail
-    private void sendRealEmail(Context context, String receiverEmail, UserTask userTask) {
-        String subject = "New Task Shared With You: " + userTask.getTitle();
-        String message = "Hi!\n\nI shared a new task with you in RonilesApp.\n\n" +
+    private void openShareMenu(Context context, UserTask userTask) {
+        String subject = "Task Shared: " + userTask.getTitle();
+        String message = "Hi!\n\nI shared a task with you via RonilesApp.\n\n" +
                 "Task: " + userTask.getTitle() + "\n" +
-                "Description: " + userTask.getDescription() + "\n" +
-                "Date: " + userTask.getDay() + "/" + userTask.getMonth() + "/" + userTask.getYear() + "\n\n" +
-                "Good luck!";
+                "Details: " + userTask.getDescription() + "\n" +
+                "Due Date: " + userTask.getDay() + "/" + userTask.getMonth() + "/" + userTask.getYear() + "\n\n" +
+                "Check it out in the app!";
 
-        // שינוי קטן: במקום ACTION_SENDTO נשתמש ב-ACTION_SEND
-        // זה מאפשר לשתף גם בוואטסאפ, הודעות, או להעתיק ללוח
-        android.content.Intent shareIntent = new android.content.Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/plain"); // טקסט רגיל
-        shareIntent.putExtra(android.content.Intent.EXTRA_EMAIL, new String[]{receiverEmail});
-        shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, subject);
-        shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, message);
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        shareIntent.putExtra(Intent.EXTRA_TEXT, message);
 
         try {
-            // ניסיון לפתוח את תפריט השיתוף
-            context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Task via..."));
+            context.startActivity(Intent.createChooser(shareIntent, "Share Task via:"));
         } catch (Exception e) {
-            // אם עדיין יש שגיאה - נציג הודעה במקום שהאפליקציה תיתקע
-            Toast.makeText(context, "Cannot open share menu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Cannot open share menu", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // ViewHolder
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle, tvDescription, tvDay, tvHour, tvCategory;
         TextView tvEditButton;
         CheckBox checkBoxDone;
-        ImageButton btnShare; // הכפתור החדש
+        ImageButton btnShare;
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -218,8 +185,6 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             tvCategory = itemView.findViewById(R.id.tvTaskCategory);
             tvEditButton = itemView.findViewById(R.id.tvEditButton);
             checkBoxDone = itemView.findViewById(R.id.checkBoxDone);
-
-            // חיבור הכפתור החדש מה-XML
             btnShare = itemView.findViewById(R.id.btnShareTask);
         }
     }

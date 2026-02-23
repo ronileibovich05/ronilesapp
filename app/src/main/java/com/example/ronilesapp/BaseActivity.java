@@ -11,9 +11,8 @@ public class BaseActivity extends AppCompatActivity {
     protected static final String PREFS_NAME = "AppSettingsPrefs";
     protected static final String KEY_THEME = "theme";
 
-    // גישה ל-SharedPreferences
     SharedPreferences baseSharedPreferences;
-    // איזה theme היה בפעם האחרונה
+
     private String lastTheme;
 
     @Override
