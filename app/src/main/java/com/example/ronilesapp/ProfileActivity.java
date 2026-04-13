@@ -3,12 +3,15 @@ package com.example.ronilesapp;
 import static com.example.ronilesapp.Utils.refUsers;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.MenuItem;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -18,16 +21,24 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ProfileActivity extends BaseActivity {
 
@@ -43,6 +54,12 @@ public class ProfileActivity extends BaseActivity {
 
     private SharedPreferences.OnSharedPreferenceChangeListener themeListener;
     private String currentProfileImageUrl = "";
+
+    // משתנים לבחירת תמונה (גלריה או מצלמה)
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private ActivityResultLauncher<Uri> takePictureLauncher;
+    private Uri selectedImageUri = null;
+    private Uri cameraImageUri = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,6 +80,30 @@ public class ProfileActivity extends BaseActivity {
         tvCompletedTasks = findViewById(R.id.tvCompletedTasks);
         tvPendingTasks = findViewById(R.id.tvPendingTasks);
         btnLogout = findViewById(R.id.btnLogout);
+
+        // 1. משגר פתיחת גלריה
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        selectedImageUri = result.getData().getData();
+                        Toast.makeText(this, "Image selected! Press Save to upload.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+
+        // 2. משגר פתיחת מצלמה
+        takePictureLauncher = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                isSuccess -> {
+                    if (isSuccess && cameraImageUri != null) {
+                        selectedImageUri = cameraImageUri;
+                        Toast.makeText(this, "Photo taken! Press Save to upload.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Camera canceled", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -99,6 +140,35 @@ public class ProfileActivity extends BaseActivity {
 
         applyThemeColors();
         loadUserProfile();
+    }
+
+    // --- פונקציה לייצור קובץ זמני לתמונת המצלמה ---
+// --- פונקציה לייצור קובץ זמני לתמונת המצלמה ---
+    private Uri createImageFileUri(
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ) {
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        if (storageDir != null && !storageDir.exists()) {
+            storageDir.mkdirs();
+        }
+        File imageFile = new File(storageDir, "profile_pic_" + System.currentTimeMillis() + ".jpg");
+        // התיקון כאן: כתבנו את השם המדויק של החבילה במקום getPackageName()
+        return FileProvider.getUriForFile(this, "com.example.ronilesapp.fileprovider", imageFile);
     }
 
     @Override
@@ -188,7 +258,6 @@ public class ProfileActivity extends BaseActivity {
         tvPendingTasks.setTextColor(textColor);
         tvPercentage.setTextColor(textColor);
 
-        // Buttons using Tint instead of setBackgroundColor
         btnEditProfile.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonColor));
         btnLogout.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonColor));
         btnLogout.setTextColor(ContextCompat.getColor(this, android.R.color.white));
@@ -221,6 +290,8 @@ public class ProfileActivity extends BaseActivity {
     }
 
     private void showEditProfileDialog() {
+        selectedImageUri = null;
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Edit Profile");
 
@@ -238,23 +309,79 @@ public class ProfileActivity extends BaseActivity {
         inputLastName.setText(tvLastName.getText().toString());
         layout.addView(inputLastName);
 
+        // שורת כפתורים (גלריה ומצלמה)
+        LinearLayout buttonsLayout = new LinearLayout(this);
+        buttonsLayout.setOrientation(LinearLayout.HORIZONTAL);
+        buttonsLayout.setPadding(0, 20, 0, 0);
+
+        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+
+        Button btnGallery = new Button(this);
+        btnGallery.setText("Gallery");
+        btnGallery.setLayoutParams(btnParams);
+        btnGallery.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            imagePickerLauncher.launch(intent);
+        });
+
+        Button btnCamera = new Button(this);
+        btnCamera.setText("Camera");
+        btnCamera.setLayoutParams(btnParams);
+        btnCamera.setOnClickListener(v -> {
+            cameraImageUri = createImageFileUri();
+            if (cameraImageUri != null) {
+                takePictureLauncher.launch(cameraImageUri);
+            }
+        });
+
+        buttonsLayout.addView(btnGallery);
+        buttonsLayout.addView(btnCamera);
+        layout.addView(buttonsLayout);
+
         builder.setView(layout);
         builder.setPositiveButton("Save", (dialog, which) ->
-                updateUserProfile(inputFirstName.getText().toString().trim(), inputLastName.getText().toString().trim())
+                updateUserProfile(inputFirstName.getText().toString().trim(), inputLastName.getText().toString().trim(), selectedImageUri)
         );
         builder.setNegativeButton("Cancel", null);
         builder.show();
     }
 
-    private void updateUserProfile(String firstName, String lastName) {
+    private void updateUserProfile(String firstName, String lastName, Uri imageUri) {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
 
-        refUsers.document(uid)
-                .update("firstName", firstName, "lastName", lastName)
+        if (imageUri != null) {
+            Toast.makeText(this, "Uploading image... please wait", Toast.LENGTH_SHORT).show();
+            StorageReference fileRef = FirebaseStorage.getInstance().getReference().child("profile_images/" + uid + ".jpg");
+
+            fileRef.putFile(imageUri).addOnSuccessListener(taskSnapshot -> {
+                fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                    saveProfileDataToFirestore(uid, firstName, lastName, uri.toString());
+                });
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "Failed to upload image", Toast.LENGTH_SHORT).show();
+            });
+        } else {
+            saveProfileDataToFirestore(uid, firstName, lastName, null);
+        }
+    }
+
+    private void saveProfileDataToFirestore(String uid, String firstName, String lastName, String imageUrl) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("firstName", firstName);
+        updates.put("lastName", lastName);
+        if (imageUrl != null) {
+            updates.put("profileImageUrl", imageUrl);
+        }
+
+        refUsers.document(uid).update(updates)
                 .addOnSuccessListener(aVoid -> {
                     tvFirstName.setText(firstName);
                     tvLastName.setText(lastName);
+                    if (imageUrl != null) {
+                        currentProfileImageUrl = imageUrl;
+                        loadImageFromString(imageUrl);
+                    }
                     Toast.makeText(ProfileActivity.this, "Profile updated successfully!", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> Toast.makeText(ProfileActivity.this, "Error updating profile", Toast.LENGTH_SHORT).show());

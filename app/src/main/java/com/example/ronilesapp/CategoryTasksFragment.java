@@ -22,6 +22,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
@@ -35,12 +36,20 @@ public class CategoryTasksFragment extends Fragment {
     private static final String ARG_CATEGORY = "category";
     private String category;
 
+    // רכיבי UI - רשימה ראשית
     private RecyclerView recyclerView;
     private LinearLayout emptyStateLayout;
-
     private TasksAdapter adapter;
     private List<UserTask> taskList = new ArrayList<>();
     private List<UserTask> displayedTaskList = new ArrayList<>();
+
+    // רכיבי UI - היסטוריה (Bottom Sheet)
+    private RecyclerView recyclerViewHistoryTasks;
+    private TasksAdapter historyAdapter;
+    private List<UserTask> historyTaskList = new ArrayList<>();
+    private List<UserTask> displayedHistoryTaskList = new ArrayList<>();
+    private BottomSheetBehavior<LinearLayout> bottomSheetBehavior;
+
     private Button btnDeleteCategory;
     private Spinner spinnerSort;
     private EditText searchEditText;
@@ -89,52 +98,50 @@ public class CategoryTasksFragment extends Fragment {
         }
         view.setBackgroundColor(backgroundColor);
 
+        // --- הגדרות רשימה ראשית ---
         recyclerView = view.findViewById(R.id.recyclerViewCategoryTasks);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         emptyStateLayout = view.findViewById(R.id.emptyStateLayout);
-        searchEditText = view.findViewById(R.id.editTextSearch);
 
+        // --- הגדרות רשימת היסטוריה (Bottom Sheet) ---
+        recyclerViewHistoryTasks = view.findViewById(R.id.recyclerViewHistoryTasks);
+        recyclerViewHistoryTasks.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        LinearLayout bottomSheetLayout = view.findViewById(R.id.bottomSheetHistory);
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED); // מתחיל סגור
+
+        LinearLayout historyHeaderLayout = view.findViewById(R.id.historyHeaderLayout);
+        historyHeaderLayout.setOnClickListener(v -> {
+            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            } else {
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+        });
+        searchEditText = view.findViewById(R.id.editTextSearch);
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterTasks(s.toString()); }
             @Override public void afterTextChanged(Editable s) {}
         });
 
+        // --- חיבור האדפטרים לפונקציות החדשות שלנו ---
         adapter = new TasksAdapter(displayedTaskList,
-                (task, isChecked) -> {
-                    String docId = task.getId() != null ? task.getId() : task.getTitle();
-
-                    // Update task status
-                    Utils.getUserTasksRef().document(docId).update("done", isChecked)
-                            .addOnSuccessListener(aVoid -> {
-                                if (isChecked) {
-                                    NotificationHelper.cancelNotification(requireContext(), docId);
-                                    Snackbar.make(recyclerView, "Task Completed", 3500)
-                                            .setAction("UNDO", v -> Utils.getUserTasksRef().document(docId).update("done", false))
-                                            .setActionTextColor(getResources().getColor(android.R.color.holo_orange_light))
-                                            .show();
-                                }
-                            });
-                },
-                task -> {
-                    android.content.Intent intent = new android.content.Intent(getContext(), AddTaskActivity.class);
-                    intent.putExtra("taskId", task.getId());
-                    intent.putExtra("title", task.getTitle());
-                    intent.putExtra("desc", task.getDescription());
-                    intent.putExtra("category", task.getCategory());
-                    intent.putExtra("day", task.getDay());
-                    intent.putExtra("month", task.getMonth());
-                    intent.putExtra("year", task.getYear());
-                    intent.putExtra("hour", task.getHour());
-                    intent.putExtra("minute", task.getMinute());
-                    startActivity(intent);
-                }
+                (task, isChecked) -> handleTaskCheckChange(task, isChecked),
+                task -> handleTaskClick(task)
         );
-
         recyclerView.setAdapter(adapter);
 
+        historyAdapter = new TasksAdapter(displayedHistoryTaskList,
+                (task, isChecked) -> handleTaskCheckChange(task, isChecked),
+                task -> handleTaskClick(task)
+        );
+        recyclerViewHistoryTasks.setAdapter(historyAdapter);
+
+        // --- הגדרות מיון ---
         spinnerSort = view.findViewById(R.id.spinnerSort);
-        String[] sortOptions = {"Sort By...", "Date Added", "By Date", "By Time"};
+        String[] sortOptions = {"Sort By...", "Date Added", "By Date"};
 
         ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, sortOptions);
         sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -148,6 +155,7 @@ public class CategoryTasksFragment extends Fragment {
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
 
+        // --- כפתור מחיקת קטגוריה ---
         btnDeleteCategory = view.findViewById(R.id.btnDeleteCategory);
         if ("All Tasks".equals(category)) {
             btnDeleteCategory.setVisibility(View.GONE);
@@ -156,6 +164,53 @@ public class CategoryTasksFragment extends Fragment {
         }
 
         return view;
+    }
+
+    // פונקציה לטיפול בסימון משימה כ"בוצעה" או "לא בוצעה"
+    private void handleTaskCheckChange(UserTask task, boolean isChecked) {
+        String docId = task.getId() != null ? task.getId() : task.getTitle();
+        Utils.getUserTasksRef().document(docId).update("done", isChecked)
+                .addOnSuccessListener(aVoid -> {
+                    if (isChecked) {
+                        NotificationHelper.cancelNotification(requireContext(), docId);
+                        Snackbar.make(requireView(), "Task moved to History", 3000)
+                                .setAction("UNDO", v -> Utils.getUserTasksRef().document(docId).update("done", false))
+                                .setActionTextColor(getResources().getColor(android.R.color.holo_orange_light))
+                                .show();
+                    } else {
+                        Snackbar.make(requireView(), "Task moved back to active", 2000).show();
+                    }
+                });
+    }
+
+    // פונקציה לטיפול בלחיצה על משימה (לעריכה או מחיקה מהיסטוריה)
+    private void handleTaskClick(UserTask task) {
+        if (task.isDone()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Delete Task")
+                    .setMessage("Do you want to permanently delete this completed task?")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        String docId = task.getId() != null ? task.getId() : task.getTitle();
+                        Utils.getUserTasksRef().document(docId).delete()
+                                .addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(getContext(), "Task deleted permanently", Toast.LENGTH_SHORT).show();
+                                });
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            android.content.Intent intent = new android.content.Intent(getContext(), AddTaskActivity.class);
+            intent.putExtra("taskId", task.getId());
+            intent.putExtra("title", task.getTitle());
+            intent.putExtra("desc", task.getDescription());
+            intent.putExtra("category", task.getCategory());
+            intent.putExtra("day", task.getDay());
+            intent.putExtra("month", task.getMonth());
+            intent.putExtra("year", task.getYear());
+            intent.putExtra("hour", task.getHour());
+            intent.putExtra("minute", task.getMinute());
+            startActivity(intent);
+        }
     }
 
     @Override
@@ -188,6 +243,8 @@ public class CategoryTasksFragment extends Fragment {
 
             if (value != null) {
                 taskList.clear();
+                historyTaskList.clear();
+
                 for (QueryDocumentSnapshot doc : value) {
                     UserTask taskObj = doc.toObject(UserTask.class);
                     taskObj.setId(doc.getId());
@@ -197,20 +254,15 @@ public class CategoryTasksFragment extends Fragment {
                         continue;
                     }
 
-                    // התיקון לבקשת המורה: כבר לא מדלגים על משימות שהושלמו!
-                    // הן נכנסות לרשימה ויוצגו, אבל אנחנו נסדר אותן בסוף הרשימה ב-sortTasks.
-                    taskList.add(taskObj);
+                    if (taskObj.isDone()) {
+                        historyTaskList.add(taskObj);
+                    } else {
+                        taskList.add(taskObj);
+                    }
                 }
 
                 String currentSearch = searchEditText.getText().toString();
-                if (currentSearch.isEmpty()) {
-                    displayedTaskList.clear();
-                    displayedTaskList.addAll(taskList);
-                } else {
-                    filterTasks(currentSearch);
-                }
-
-                sortTasks(currentSortOption);
+                filterTasks(currentSearch);
             }
         });
     }
@@ -226,50 +278,58 @@ public class CategoryTasksFragment extends Fragment {
     }
 
     private void sortTasks(int sortOption) {
-        if (displayedTaskList == null || displayedTaskList.isEmpty()) {
-            updateEmptyState();
-            return;
+        if (displayedTaskList != null && !displayedTaskList.isEmpty()) {
+            displayedTaskList.sort((t1, t2) -> {
+                switch (sortOption) {
+                    case 1:
+                        return Long.compare(t1.getCreationTime(), t2.getCreationTime());
+                    case 2:
+                        if(t1.getYear() != t2.getYear()) return Integer.compare(t1.getYear(), t2.getYear());
+                        if(t1.getMonth() != t2.getMonth()) return Integer.compare(t1.getMonth(), t2.getMonth());
+                        if(t1.getDay() != t2.getDay()) return Integer.compare(t1.getDay(), t2.getDay());
+                        if(t1.getHour() != t2.getHour()) return Integer.compare(t1.getHour(), t2.getHour());
+                        return Integer.compare(t1.getMinute(), t2.getMinute());
+                    default:
+                        return Long.compare(t1.getCreationTime(), t2.getCreationTime());
+                }
+            });
         }
 
-        displayedTaskList.sort((t1, t2) -> {
-            // קודם כל, משימות שלא הושלמו מופיעות למעלה, משימות שהושלמו למטה (עונה להערת המורה)
-            if (t1.isDone() && !t2.isDone()) return 1;
-            if (!t1.isDone() && t2.isDone()) return -1;
-
-            // אחר כך, מיון רגיל לפי בחירת המשתמש
-            switch (sortOption) {
-                case 1: // Date Added
-                    return Long.compare(t1.getCreationTime(), t2.getCreationTime());
-                case 2: // By Date (Year, Month, Day)
-                    if(t1.getYear() != t2.getYear()) return Integer.compare(t1.getYear(), t2.getYear());
-                    if(t1.getMonth() != t2.getMonth()) return Integer.compare(t1.getMonth(), t2.getMonth());
-                    return Integer.compare(t1.getDay(), t2.getDay());
-                case 3: // By Time (Hour, Minute)
-                    if(t1.getHour() != t2.getHour()) return Integer.compare(t1.getHour(), t2.getHour());
-                    return Integer.compare(t1.getMinute(), t2.getMinute());
-                default: // Default sort (Date Added)
-                    return Long.compare(t1.getCreationTime(), t2.getCreationTime());
-            }
-        });
+        if (displayedHistoryTaskList != null && !displayedHistoryTaskList.isEmpty()) {
+            displayedHistoryTaskList.sort((t1, t2) -> Long.compare(t2.getCreationTime(), t1.getCreationTime()));
+        }
 
         if (adapter != null) adapter.notifyDataSetChanged();
+        if (historyAdapter != null) historyAdapter.notifyDataSetChanged();
+
         updateEmptyState();
     }
 
     private void filterTasks(String query) {
         displayedTaskList.clear();
+        displayedHistoryTaskList.clear();
+
         if (query.isEmpty()) {
             displayedTaskList.addAll(taskList);
+            displayedHistoryTaskList.addAll(historyTaskList);
         } else {
             String lowerQuery = query.toLowerCase();
+
             for (UserTask t : taskList) {
                 if ((t.getTitle() != null && t.getTitle().toLowerCase().contains(lowerQuery)) ||
                         (t.getDescription() != null && t.getDescription().toLowerCase().contains(lowerQuery))) {
                     displayedTaskList.add(t);
                 }
             }
+
+            for (UserTask t : historyTaskList) {
+                if ((t.getTitle() != null && t.getTitle().toLowerCase().contains(lowerQuery)) ||
+                        (t.getDescription() != null && t.getDescription().toLowerCase().contains(lowerQuery))) {
+                    displayedHistoryTaskList.add(t);
+                }
+            }
         }
-        sortTasks(currentSortOption); // שומר על מיון נכון גם בזמן חיפוש
+        sortTasks(currentSortOption);
     }
 
     private void deleteCategory() {
