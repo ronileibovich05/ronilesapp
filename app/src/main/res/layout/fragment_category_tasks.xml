@@ -108,31 +108,45 @@
         app:behavior_fitToContents="false"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-        <LinearLayout
+        <RelativeLayout
             android:id="@+id/historyHeaderLayout"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:background="#E0E0E0">
+            android:layout_height="70dp"
+            android:background="#E0E0E0"
+            android:paddingTop="8dp">
 
             <View
+                android:id="@+id/dragHandle"
                 android:layout_width="40dp"
                 android:layout_height="5dp"
-                android:layout_marginTop="8dp"
-                android:background="#9E9E9E"
-                android:layout_gravity="center"/>
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="4dp"
+                android:background="#9E9E9E" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@id/dragHandle"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="8dp"
                 android:text="Completed Tasks (History)"
-                android:textSize="16sp"
-                android:textStyle="bold"
                 android:textColor="#333333"
-                android:layout_marginTop="4dp"/>
-        </LinearLayout>
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
+            <ImageButton
+                android:id="@+id/btnClearHistory"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Clear History"
+                android:src="@android:drawable/ic_menu_delete"
+                app:tint="#B93737" />
+
+        </RelativeLayout>
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewHistoryTasks"
             android:layout_width="match_parent"

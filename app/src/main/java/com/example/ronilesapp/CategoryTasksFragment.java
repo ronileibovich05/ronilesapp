@@ -12,7 +12,9 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -27,6 +29,8 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,9 +113,10 @@ public class CategoryTasksFragment extends Fragment {
 
         LinearLayout bottomSheetLayout = view.findViewById(R.id.bottomSheetHistory);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
-        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED); // מתחיל סגור
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-        LinearLayout historyHeaderLayout = view.findViewById(R.id.historyHeaderLayout);
+        // שינוי ל-RelativeLayout כדי שיתאים ל-XML החדש
+        RelativeLayout historyHeaderLayout = view.findViewById(R.id.historyHeaderLayout);
         historyHeaderLayout.setOnClickListener(v -> {
             if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
@@ -119,6 +124,17 @@ public class CategoryTasksFragment extends Fragment {
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
         });
+
+        // חיבור כפתור מחיקת כל ההיסטוריה
+        ImageButton btnClearHistory = view.findViewById(R.id.btnClearHistory);
+        btnClearHistory.setOnClickListener(v -> {
+            if (historyTaskList.isEmpty()) {
+                Toast.makeText(getContext(), "History is already empty", Toast.LENGTH_SHORT).show();
+            } else {
+                showClearHistoryDialog();
+            }
+        });
+
         searchEditText = view.findViewById(R.id.editTextSearch);
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -126,7 +142,7 @@ public class CategoryTasksFragment extends Fragment {
             @Override public void afterTextChanged(Editable s) {}
         });
 
-        // --- חיבור האדפטרים לפונקציות החדשות שלנו ---
+        // --- חיבור האדפטרים ---
         adapter = new TasksAdapter(displayedTaskList,
                 (task, isChecked) -> handleTaskCheckChange(task, isChecked),
                 task -> handleTaskClick(task)
@@ -166,7 +182,33 @@ public class CategoryTasksFragment extends Fragment {
         return view;
     }
 
-    // פונקציה לטיפול בסימון משימה כ"בוצעה" או "לא בוצעה"
+    // פונקציית דיאלוג אישור למחיקת היסטוריה
+    private void showClearHistoryDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Clear History")
+                .setMessage("Are you sure you want to permanently delete all completed tasks? This will reset your stats.")
+                .setPositiveButton("Delete All", (dialog, which) -> clearHistoryFromFirestore())
+                .setNegativeButton("Cancel", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    // פונקציית המחיקה בפועל מה-Firestore
+    private void clearHistoryFromFirestore() {
+        WriteBatch batch = FirebaseFirestore.getInstance().batch();
+        for (UserTask task : historyTaskList) {
+            if (task.getId() != null) {
+                batch.delete(Utils.getUserTasksRef().document(task.getId()));
+            }
+        }
+
+        batch.commit().addOnSuccessListener(aVoid -> {
+            Toast.makeText(getContext(), "History cleared successfully!", Toast.LENGTH_SHORT).show();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(getContext(), "Error clearing history", Toast.LENGTH_SHORT).show();
+        });
+    }
+
     private void handleTaskCheckChange(UserTask task, boolean isChecked) {
         String docId = task.getId() != null ? task.getId() : task.getTitle();
         Utils.getUserTasksRef().document(docId).update("done", isChecked)
@@ -183,7 +225,6 @@ public class CategoryTasksFragment extends Fragment {
                 });
     }
 
-    // פונקציה לטיפול בלחיצה על משימה (לעריכה או מחיקה מהיסטוריה)
     private void handleTaskClick(UserTask task) {
         if (task.isDone()) {
             new AlertDialog.Builder(requireContext())
