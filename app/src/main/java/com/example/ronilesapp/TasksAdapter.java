@@ -98,29 +98,33 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
     }
 
     private void showShareDialog(Context context, UserTask userTask) {
-        if (!Utils.isConnected(context)) {
-            Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show();
-            return;
+        try {
+            // קידוד הנתונים לקישור (Deep Link)
+            String encodedTitle = java.net.URLEncoder.encode(userTask.getTitle(), "UTF-8");
+            String encodedDesc = java.net.URLEncoder.encode(userTask.getDescription() != null ? userTask.getDescription() : "", "UTF-8");
+
+            String deepLink = "ronilesapp://task?title=" + encodedTitle
+                    + "&desc=" + encodedDesc
+                    + "&day=" + userTask.getDay()
+                    + "&month=" + userTask.getMonth()
+                    + "&year=" + userTask.getYear();
+
+            String subject = "משימה חדשה שותפה איתך: " + userTask.getTitle();
+            String message = "היי! צירפתי לך משימה ב-RonilesApp.\n\n" +
+                    "לחץ על הקישור כדי להוסיף אותה:\n" + deepLink;
+
+            // יצירת Intent שפותח ישירות את בחירת אפליקציית השיתוף
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+            shareIntent.putExtra(Intent.EXTRA_TEXT, message);
+
+            // זה יפתח למשתמש ישר את ה-Share Sheet של אנדרואיד (וואטסאפ, מייל, וכו')
+            context.startActivity(Intent.createChooser(shareIntent, "שתף משימה באמצעות:"));
+
+        } catch (Exception e) {
+            Toast.makeText(context, "שגיאה ביצירת הקישור", Toast.LENGTH_SHORT).show();
         }
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("Share Task");
-        builder.setMessage("Enter user email to share with:");
-
-        final EditText input = new EditText(context);
-        input.setHint("email@example.com");
-        builder.setView(input);
-
-        builder.setPositiveButton("Share", (dialog, which) -> {
-            String email = input.getText().toString().trim();
-            if (!email.isEmpty()) {
-                shareTaskWithUser(context, userTask, email);
-            } else {
-                Toast.makeText(context, "Email cannot be empty", Toast.LENGTH_SHORT).show();
-            }
-        });
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        builder.show();
     }
 
     private void shareTaskWithUser(Context context, UserTask userTask, String receiverEmail) {

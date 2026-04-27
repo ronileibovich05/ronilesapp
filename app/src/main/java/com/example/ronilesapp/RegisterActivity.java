@@ -193,7 +193,7 @@ public class RegisterActivity extends BaseActivity {
         try {
             File photoFile = createImageFile();
             if (photoFile != null) {
-                cameraImageUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", photoFile);
+                cameraImageUri = FileProvider.getUriForFile(this, "com.example.ronilesapp.provider", photoFile);
                 cameraLauncher.launch(cameraImageUri);
             }
         } catch (IOException ex) {
