@@ -5,7 +5,6 @@ import static com.example.ronilesapp.Utils.refSharedTasks;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -97,36 +96,29 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
         return taskList.size();
     }
 
+    // מציג דיאלוג שבו המשתמש מזין את המייל של מי שיקבל את המשימה
     private void showShareDialog(Context context, UserTask userTask) {
-        try {
-            // קידוד הנתונים לקישור (Deep Link)
-            String encodedTitle = java.net.URLEncoder.encode(userTask.getTitle(), "UTF-8");
-            String encodedDesc = java.net.URLEncoder.encode(userTask.getDescription() != null ? userTask.getDescription() : "", "UTF-8");
+        EditText inputEmail = new EditText(context);
+        inputEmail.setHint("Enter receiver's email");
+        inputEmail.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
 
-            String deepLink = "ronilesapp://task?title=" + encodedTitle
-                    + "&desc=" + encodedDesc
-                    + "&day=" + userTask.getDay()
-                    + "&month=" + userTask.getMonth()
-                    + "&year=" + userTask.getYear();
-
-            String subject = "משימה חדשה שותפה איתך: " + userTask.getTitle();
-            String message = "היי! צירפתי לך משימה ב-RonilesApp.\n\n" +
-                    "לחץ על הקישור כדי להוסיף אותה:\n" + deepLink;
-
-            // יצירת Intent שפותח ישירות את בחירת אפליקציית השיתוף
-            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.setType("text/plain");
-            shareIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
-            shareIntent.putExtra(Intent.EXTRA_TEXT, message);
-
-            // זה יפתח למשתמש ישר את ה-Share Sheet של אנדרואיד (וואטסאפ, מייל, וכו')
-            context.startActivity(Intent.createChooser(shareIntent, "שתף משימה באמצעות:"));
-
-        } catch (Exception e) {
-            Toast.makeText(context, "שגיאה ביצירת הקישור", Toast.LENGTH_SHORT).show();
-        }
+        new AlertDialog.Builder(context)
+                .setTitle("Share Task")
+                .setMessage("Enter the email address of the user you want to share this task with:")
+                .setView(inputEmail)
+                .setPositiveButton("Share", (dialog, which) -> {
+                    String receiverEmail = inputEmail.getText().toString().trim();
+                    if (!receiverEmail.isEmpty()) {
+                        shareTaskWithUser(context, userTask, receiverEmail);
+                    } else {
+                        Toast.makeText(context, "Please enter an email address", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
+    // כותב SharedTask ל-Firebase — המקבל יקבל את המשימה אוטומטית דרך ה-Listener שלו
     private void shareTaskWithUser(Context context, UserTask userTask, String receiverEmail) {
         if (!Utils.isConnected(context)) {
             Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show();
@@ -142,36 +134,33 @@ public class TasksAdapter extends RecyclerView.Adapter<TasksAdapter.TaskViewHold
             return;
         }
 
+        // יוצרים מזהה ייחודי למסמך ה-SharedTask
         String shareId = refSharedTasks.document().getId();
-        SharedTask sharedTask = new SharedTask(shareId, senderEmail, receiverEmail, userTask.getId());
 
+        // יוצרים אובייקט SharedTask עם כל פרטי המשימה
+        SharedTask sharedTask = new SharedTask(
+                shareId,
+                senderEmail,
+                receiverEmail,
+                userTask.getTitle(),
+                userTask.getDescription(),
+                userTask.getDay(),
+                userTask.getMonth(),
+                userTask.getYear(),
+                userTask.getHour(),
+                userTask.getMinute(),
+                userTask.getCategory()
+        );
+
+        // כותבים את אובייקט SharedTask לבסיס הנתונים — זה כל מה שצריך לעשות
         refSharedTasks.document(shareId)
                 .set(sharedTask)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(context, "Task shared successfully!", Toast.LENGTH_SHORT).show();
-                    openShareMenu(context, userTask);
-                })
-                .addOnFailureListener(e -> Toast.makeText(context, "Error sharing task: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-    }
-
-    private void openShareMenu(Context context, UserTask userTask) {
-        String subject = "Task Shared: " + userTask.getTitle();
-        String message = "Hi!\n\nI shared a task with you via RonilesApp.\n\n" +
-                "Task: " + userTask.getTitle() + "\n" +
-                "Details: " + userTask.getDescription() + "\n" +
-                "Due Date: " + userTask.getDay() + "/" + userTask.getMonth() + "/" + userTask.getYear() + "\n\n" +
-                "Check it out in the app!";
-
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
-        shareIntent.putExtra(Intent.EXTRA_TEXT, message);
-
-        try {
-            context.startActivity(Intent.createChooser(shareIntent, "Share Task via:"));
-        } catch (Exception e) {
-            Toast.makeText(context, "Cannot open share menu", Toast.LENGTH_SHORT).show();
-        }
+                .addOnSuccessListener(aVoid ->
+                        Toast.makeText(context, "Task shared! The recipient will see it automatically.", Toast.LENGTH_LONG).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(context, "Error sharing task: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
     }
 
     static class TaskViewHolder extends RecyclerView.ViewHolder {

@@ -61,6 +61,9 @@ public class CategoryTasksFragment extends Fragment {
     private int currentSortOption = 0;
     private ListenerRegistration firestoreListener;
 
+    // Listener שמאזין למשימות נכנסות ששותפו עם המשתמש הנוכחי
+    private ListenerRegistration sharedTasksListener;
+
     public static CategoryTasksFragment newInstance(String category) {
         CategoryTasksFragment fragment = new CategoryTasksFragment();
         Bundle args = new Bundle();
@@ -258,12 +261,17 @@ public class CategoryTasksFragment extends Fragment {
     public void onStart() {
         super.onStart();
         startListeningForTasks();
+        // רק בטאב "כל המשימות" מאזינים למשימות משותפות כדי לא לקבל כפולות
+        if ("All Tasks".equals(category)) {
+            startListeningForSharedTasks();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
         if (firestoreListener != null) firestoreListener.remove();
+        if (sharedTasksListener != null) sharedTasksListener.remove();
     }
 
     private void startListeningForTasks() {
@@ -306,6 +314,63 @@ public class CategoryTasksFragment extends Fragment {
                 filterTasks(currentSearch);
             }
         });
+    }
+
+    // מאזין בזמן אמת למשימות שנשלחו אל המשתמש הנוכחי דרך הקולקשן SharedTasks
+    private void startListeningForSharedTasks() {
+        if (Utils.mAuth.getCurrentUser() == null) return;
+
+        String currentUserEmail = Utils.mAuth.getCurrentUser().getEmail();
+        if (currentUserEmail == null) return;
+
+        // מחפשים מסמכים שבהם receiverEmail שווה למייל של המשתמש הנוכחי
+        sharedTasksListener = Utils.refSharedTasks
+                .whereEqualTo("receiverEmail", currentUserEmail)
+                .addSnapshotListener((snapshots, error) -> {
+                    if (error != null || snapshots == null) return;
+
+                    // עוברים רק על מסמכים חדשים שנוספו (לא על שינויים או מחיקות)
+                    for (com.google.firebase.firestore.DocumentChange change : snapshots.getDocumentChanges()) {
+                        if (change.getType() == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
+                            SharedTask sharedTask = change.getDocument().toObject(SharedTask.class);
+                            receiveSharedTask(sharedTask, change.getDocument().getId());
+                        }
+                    }
+                });
+    }
+
+    // מקבל SharedTask, יוצר ממנו UserTask בקולקשן של המשתמש, ומוחק את ה-SharedTask
+    private void receiveSharedTask(SharedTask sharedTask, String sharedDocId) {
+        // יוצרים מזהה חדש למשימה בקולקשן של המשתמש הנוכחי
+        String newTaskId = Utils.getUserTasksRef().document().getId();
+
+        // יוצרים אובייקט UserTask חדש מהנתונים שקיבלנו
+        UserTask newTask = new UserTask(
+                newTaskId,
+                sharedTask.getTitle(),
+                sharedTask.getDescription(),
+                sharedTask.getDay(),
+                sharedTask.getMonth(),
+                sharedTask.getYear(),
+                sharedTask.getHour(),
+                sharedTask.getMinute(),
+                sharedTask.getCategory(),
+                false
+        );
+
+        // שומרים את המשימה החדשה בקולקשן Tasks של המשתמש הנוכחי
+        Utils.getUserTasksRef().document(newTaskId).set(newTask)
+                .addOnSuccessListener(aVoid -> {
+                    // מוחקים את ה-SharedTask — הוא כבר הגיע ליעד
+                    Utils.refSharedTasks.document(sharedDocId).delete();
+
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(),
+                                "New task shared by " + sharedTask.getSenderEmail() + " was added!",
+                                Toast.LENGTH_LONG).show();
+                    }
+                    // ה-firestoreListener על Tasks יעדכן את הממשק אוטומטית
+                });
     }
 
     private void updateEmptyState() {
