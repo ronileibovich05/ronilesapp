@@ -57,6 +57,7 @@ public class ProfileActivity extends BaseActivity {
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private ActivityResultLauncher<Uri> takePictureLauncher;
+    private ActivityResultLauncher<String> requestPermissionLauncher;
     private Uri selectedImageUri = null;
     private Uri cameraImageUri = null;
 
@@ -108,6 +109,18 @@ public class ProfileActivity extends BaseActivity {
                     }
                 }
         );
+        // משגר לבקשת הרשאת מצלמה בזמן אמת
+        requestPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        // אם המשתמש אישר, נפתח את המצלמה
+                        launchCamera();
+                    } else {
+                        Toast.makeText(this, "Camera permission is required to take a photo", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -148,7 +161,11 @@ public class ProfileActivity extends BaseActivity {
         applyThemeColors();
         loadUserProfile();
     }
-
+    @Override
+    protected void onStart() {
+        super.onStart();
+        calculateStats(); // הפעלת חישוב הסטטיסטיקה בכל פעם שהמסך עולה!
+    }
     // שמירת ה-URI למקרה שהזיכרון מתנקה
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
@@ -214,10 +231,15 @@ public class ProfileActivity extends BaseActivity {
         btnCamera.setText("Camera");
         btnCamera.setLayoutParams(btnParams);
         btnCamera.setOnClickListener(v -> {
-            cameraImageUri = createImageFileUri();
-            takePictureLauncher.launch(cameraImageUri);
+            // בדיקה: האם כבר יש לנו הרשאה למצלמה?
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                // אם אין, נבקש אותה מהמשתמש
+                requestPermissionLauncher.launch(android.Manifest.permission.CAMERA);
+            } else {
+                // אם יש, נפתח את המצלמה ישירות
+                launchCamera();
+            }
         });
-
         buttonsLayout.addView(btnGallery);
         buttonsLayout.addView(btnCamera);
         layout.addView(buttonsLayout);
@@ -277,19 +299,38 @@ public class ProfileActivity extends BaseActivity {
     }
 
     private void calculateStats() {
+        // הגנה: אם הרכיבים במסך עדיין לא נטענו, לא נריץ את החישוב
+        if (tvTotalTasks == null || tvCompletedTasks == null || tvPendingTasks == null || progressBarStats == null || tvPercentage == null) {
+            return;
+        }
+
         Utils.getUserTasksRef().get().addOnSuccessListener(value -> {
-            int total = 0, done = 0;
-            for (DocumentSnapshot doc : value.getDocuments()) {
+            if (value == null) return;
+
+            int total = 0;
+            int done = 0;
+
+            for (com.google.firebase.firestore.DocumentSnapshot doc : value.getDocuments()) {
                 UserTask t = doc.toObject(UserTask.class);
-                total++;
-                if (t.isDone()) done++;
+                if (t != null) {
+                    total++;
+                    if (t.isDone()) {
+                        done++;
+                    }
+                }
             }
+
             int progress = (total == 0) ? 0 : (done * 100 / total);
+
+            // עדכון הנתונים בריבוע הסטטיסטיקה
             tvTotalTasks.setText(String.valueOf(total));
             tvCompletedTasks.setText(String.valueOf(done));
             tvPendingTasks.setText(String.valueOf(total - done));
             progressBarStats.setProgress(progress);
             tvPercentage.setText(progress + "%");
+
+        }).addOnFailureListener(e -> {
+            Toast.makeText(ProfileActivity.this, "Failed to load stats", Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -341,6 +382,12 @@ public class ProfileActivity extends BaseActivity {
         if (btnLogout != null) {
             btnLogout.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonColor));
             btnLogout.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+        }
+    }
+    private void launchCamera() {
+        cameraImageUri = createImageFileUri();
+        if (cameraImageUri != null) {
+            takePictureLauncher.launch(cameraImageUri);
         }
     }
 }

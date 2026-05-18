@@ -79,7 +79,7 @@
 
                 <RadioButton
                     android:id="@+id/rbBlueWhite"
-                    android:text="Blue / White"
+                    android:text="Blue / Pink"
                     android:textSize="16sp"
                     android:padding="8dp"
                     android:layout_width="match_parent"
@@ -87,7 +87,7 @@
 
                 <RadioButton
                     android:id="@+id/rbGreenWhite"
-                    android:text="Green / White"
+                    android:text="Green / Pink"
                     android:textSize="16sp"
                     android:padding="8dp"
                     android:layout_width="match_parent"
