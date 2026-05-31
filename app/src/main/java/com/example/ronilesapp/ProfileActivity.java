@@ -258,14 +258,13 @@ public class ProfileActivity extends BaseActivity {
         if (uid == null) return;
 
         if (imageUri != null) {
-            Toast.makeText(this, "Uploading image...", Toast.LENGTH_SHORT).show();
-            StorageReference fileRef = FirebaseStorage.getInstance().getReference().child("profile_images/" + uid + ".jpg");
-
-            fileRef.putFile(imageUri).addOnSuccessListener(taskSnapshot -> {
-                fileRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                    saveProfileDataToFirestore(uid, firstName, lastName, uri.toString());
-                });
-            }).addOnFailureListener(e -> Toast.makeText(this, "Upload failed", Toast.LENGTH_SHORT).show());
+            // במקום להעלות ל-Storage, נמיר לטקסט ונשמור ישירות ב-Firestore
+            String imageString = encodeImageToBase64(imageUri);
+            if (imageString != null) {
+                saveProfileDataToFirestore(uid, firstName, lastName, imageString);
+            } else {
+                Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show();
+            }
         } else {
             saveProfileDataToFirestore(uid, firstName, lastName, null);
         }
@@ -382,6 +381,24 @@ public class ProfileActivity extends BaseActivity {
         if (btnLogout != null) {
             btnLogout.setBackgroundTintList(android.content.res.ColorStateList.valueOf(buttonColor));
             btnLogout.setTextColor(ContextCompat.getColor(this, android.R.color.white));
+        }
+    }
+    private String encodeImageToBase64(Uri imageUri) {
+        try {
+            java.io.InputStream inputStream = getContentResolver().openInputStream(imageUri);
+            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(inputStream);
+
+            // הקטנת התמונה לגודל אחיד
+            android.graphics.Bitmap scaledBitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, 400, 400, true);
+
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream); // איכות 50%
+            byte[] byteArray = outputStream.toByteArray();
+
+            return android.util.Base64.encodeToString(byteArray, android.util.Base64.DEFAULT);
+        } catch (Exception e) {
+            android.util.Log.e("ProfileActivity", "Failed to encode image", e);
+            return null;
         }
     }
     private void launchCamera() {
