@@ -24,6 +24,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -120,11 +122,14 @@ public class CategoryTasksFragment extends Fragment {
 
         // שינוי ל-RelativeLayout כדי שיתאים ל-XML החדש
         RelativeLayout historyHeaderLayout = view.findViewById(R.id.historyHeaderLayout);
-        historyHeaderLayout.setOnClickListener(v -> {
-            if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-            } else {
-                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        historyHeaderLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                } else {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
             }
         });
 
@@ -205,10 +210,16 @@ public class CategoryTasksFragment extends Fragment {
             }
         }
 
-        batch.commit().addOnSuccessListener(aVoid -> {
-            Toast.makeText(getContext(), "History cleared successfully!", Toast.LENGTH_SHORT).show();
-        }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Error clearing history", Toast.LENGTH_SHORT).show();
+        batch.commit().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Toast.makeText(CategoryTasksFragment.this.getContext(), "History cleared successfully!", Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(CategoryTasksFragment.this.getContext(), "Error clearing history", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
